@@ -237,8 +237,18 @@ class InteractiveLLMEvaluationApp:
             total = len(results)
             
             print()
-            print(f"Download completed: {successful}/{total} models successful")
-            print()
+            print(f"Training completed: {successful}/{total} models successful")
+            
+            if trained_models:
+                print()
+                print("📦 EXPORTED TRAINED MODELS:")
+                for model_info in trained_models:
+                    print(f"✅ {model_info['name'].upper()}")
+                    print(f"   📁 Export Path: {model_info['export_path']}")
+                    print(f"   📝 Usage Script: {model_info['export_path']}/usage_example.py")
+                print()
+                print("💡 Tip: Use the exported models for future inference without retraining!")
+                print("   Each export includes the trained model, LoRA adapters, and usage examples.")
             
             for model_name, success in results.items():
                 status = "✅" if success else "❌"
@@ -295,9 +305,14 @@ class InteractiveLLMEvaluationApp:
             for model_name, status in status_report.items():
                 downloaded = "✅" if status["downloaded"] else "❌"
                 auth_required = "🔒" if model_name in ["llama3", "gemma3"] else ""
+                
+                # Get disk size information
+                size_info = self.model_manager.get_model_disk_size(model_name)
+                
                 print(f"{downloaded} {model_name.upper()} {auth_required}")
                 print(f"     Description: {status['description']}")
-                print(f"     Size: {status['size_gb']}GB")
+                print(f"     Estimated Size: {status['size_gb']}GB")
+                print(f"     Disk Usage: {size_info['disk_usage']}")
                 print(f"     Type: {status['type']}")
                 
                 if status["downloaded"]:
@@ -464,6 +479,8 @@ class InteractiveLLMEvaluationApp:
         
         try:
             results = {}
+            trained_models = []
+            
             for model_name in models_to_train:
                 print(f"Training {model_name.upper()}...")
                 
@@ -488,6 +505,23 @@ class InteractiveLLMEvaluationApp:
                 results[model_name] = success
                 status = "✅" if success else "❌"
                 print(f"{status} {model_name.upper()} training completed")
+                
+                # Export trained model if training was successful
+                if success:
+                    print(f"📦 Exporting {model_name.upper()} trained model...")
+                    try:
+                        export_success = trainer.export_trained_model()
+                        if export_success:
+                            print(f"✅ {model_name.upper()} export completed")
+                            trained_models.append({
+                                'name': model_name,
+                                'export_path': f"models/{model_name}_trained_export"
+                            })
+                        else:
+                            print(f"⚠️  {model_name.upper()} export failed")
+                    except Exception as e:
+                        print(f"⚠️  {model_name.upper()} export failed: {str(e)}")
+                
                 print()
             
             # Show results

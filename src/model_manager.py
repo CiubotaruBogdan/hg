@@ -57,6 +57,89 @@ class ModelManager:
             }
         }
     
+    def get_directory_size(self, path: Path) -> float:
+        """
+        Calculate the total size of a directory in GB.
+        
+        Args:
+            path: Path to the directory
+            
+        Returns:
+            float: Size in GB
+        """
+        total_size = 0
+        try:
+            if path.exists() and path.is_dir():
+                for dirpath, dirnames, filenames in os.walk(path):
+                    for filename in filenames:
+                        filepath = os.path.join(dirpath, filename)
+                        try:
+                            total_size += os.path.getsize(filepath)
+                        except (OSError, FileNotFoundError):
+                            # Skip files that can't be accessed
+                            continue
+            return total_size / (1024**3)  # Convert bytes to GB
+        except Exception as e:
+            logger.warning(f"Error calculating directory size for {path}: {e}")
+            return 0.0
+
+    def get_model_disk_size(self, model_name: str) -> dict:
+        """
+        Get the actual disk size of a downloaded model.
+        
+        Args:
+            model_name: Name of the model
+            
+        Returns:
+            dict: Size information including actual disk usage
+        """
+        model_dir = self.models_dir / model_name
+        
+        size_info = {
+            "model_name": model_name,
+            "estimated_gb": self.models_config.get(model_name, {}).get("size_gb", 0),
+            "actual_gb": 0.0,
+            "disk_usage": "Not downloaded"
+        }
+        
+        if model_dir.exists():
+            actual_size = self.get_directory_size(model_dir)
+            size_info["actual_gb"] = round(actual_size, 2)
+            
+            if actual_size > 0:
+                size_info["disk_usage"] = f"{actual_size:.2f} GB"
+            else:
+                size_info["disk_usage"] = "< 0.01 GB"
+        
+        # For Ollama models, check Ollama's storage
+        config = self.models_config.get(model_name, {})
+        if "ollama_model" in config and self.check_ollama_status():
+            try:
+                # Try to get Ollama model size
+                result = subprocess.run(['ollama', 'list'], 
+                                      capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    ollama_model = config["ollama_model"]
+                    lines = result.stdout.split('\n')
+                    for line in lines:
+                        if ollama_model in line:
+                            # Parse size from Ollama list output
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                size_str = parts[2]  # Usually the size column
+                                if 'GB' in size_str:
+                                    try:
+                                        ollama_size = float(size_str.replace('GB', ''))
+                                        size_info["actual_gb"] = ollama_size
+                                        size_info["disk_usage"] = f"{ollama_size:.2f} GB (Ollama)"
+                                    except ValueError:
+                                        pass
+                            break
+            except Exception as e:
+                logger.warning(f"Error getting Ollama model size: {e}")
+        
+        return size_info
+
     def authenticate_huggingface(self) -> bool:
         """
         Authenticate with HuggingFace using CLI login.
