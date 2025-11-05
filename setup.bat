@@ -1,13 +1,13 @@
 @echo off
 REM ========================================
-REM HG 585 LLM Evaluation System - Windows Setup
-REM GPU-optimized setup for Windows systems
+REM HG 585 LLM Evaluation System - Setup
+REM GPU-optimized setup for Windows Server
 REM ========================================
 
 echo.
 echo ======================================================================
-echo            HG 585 LLM EVALUATION SYSTEM - WINDOWS SETUP
-echo                     GPU-Optimized Installation
+echo            HG 585 LLM EVALUATION SYSTEM - SETUP
+echo                GPU-Optimized Installation for Windows
 echo ======================================================================
 echo.
 

@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 """
-HG 585 LLM Evaluation System
+HG 585 LLM Evaluation System - Windows Edition
 Interactive Menu Interface
 
-Double-click this file to run the interactive menu system.
+Double-click this file to run the interactive menu system on Windows.
 """
 
 import os
@@ -86,7 +85,7 @@ class InteractiveLLMEvaluationApp:
     
     def clear_screen(self):
         """Clear the terminal screen."""
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system('cls')
     
     def print_header(self):
         """Print the application header."""
