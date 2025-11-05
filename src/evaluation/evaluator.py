@@ -90,53 +90,85 @@ class LLMEvaluator:
             logger.error(f"Evaluation failed for {model_name} ({stage}): {str(e)}")
             raise
     
-    def evaluate_all_models(self, 
-                           models_config: Dict[str, str],
-                           eval_data_path: str,
-                           stages: List[str] = ["before_training", "after_training"]) -> Dict[str, Any]:
+    def evaluate_models(self, 
+                       model_names: List[str],
+                       eval_data_path: str,
+                       stages: List[str] = ["before_training"],
+                       output_dir: str = None) -> Dict[str, Any]:
         """
-        Evaluate all models at specified stages.
+        Evaluate specified models at given stages.
         
         Args:
-            models_config (Dict[str, str]): Mapping of model names to paths
+            model_names (List[str]): Names of models to evaluate
             eval_data_path (str): Path to evaluation data
             stages (List[str]): Evaluation stages
+            output_dir (str): Output directory for results
             
         Returns:
-            Dict containing all evaluation results
+            Dict containing evaluation results
         """
-        logger.info(f"Starting evaluation of {len(models_config)} models at {len(stages)} stages")
+        if output_dir:
+            self.output_dir = output_dir
+            os.makedirs(output_dir, exist_ok=True)
+        
+        logger.info(f"Starting evaluation of {len(model_names)} models at {len(stages)} stages")
+        
+        # Load evaluation data
+        eval_data = self._load_evaluation_data(eval_data_path)
+        logger.info(f"Loaded {len(eval_data)} evaluation examples")
         
         all_results = {}
         
-        for model_name, model_path in models_config.items():
+        for model_name in model_names:
             for stage in stages:
                 try:
-                    # Adjust model path for different stages
-                    if stage == "after_training":
-                        # Use trained model path
-                        trained_model_path = os.path.join("/home/ubuntu/llm-evaluation/models", model_name)
-                        if os.path.exists(trained_model_path):
-                            model_path = trained_model_path
-                        else:
-                            logger.warning(f"Trained model not found for {model_name}, using original path")
+                    logger.info(f"Evaluating {model_name} ({stage})")
                     
-                    result = self.evaluate_model(model_name, model_path, eval_data_path, stage)
-                    all_results[f"{model_name}_{stage}"] = result
+                    start_time = time.time()
+                    
+                    # Extract questions for prediction
+                    questions = [item['question'] for item in eval_data]
+                    
+                    # Generate predictions
+                    predictions = self._generate_predictions(model_name, questions)
+                    
+                    # Extract references
+                    references = [item['answer'] for item in eval_data]
+                    
+                    # Compute metrics
+                    metrics = self.metrics_calculator.compute_all_metrics(
+                        predictions, references, questions
+                    )
+                    
+                    # Add timing and metadata
+                    evaluation_time = time.time() - start_time
+                    
+                    result = {
+                        'model_name': model_name,
+                        'stage': stage,
+                        'metrics': metrics,
+                        'evaluation_time': evaluation_time,
+                        'num_examples': len(eval_data),
+                        'timestamp': time.time()
+                    }
+                    
+                    result_key = f"{model_name}_{stage}"
+                    all_results[result_key] = result
+                    
+                    logger.info(f"Evaluation completed for {model_name} ({stage})")
+                    logger.info(f"Evaluation time: {evaluation_time:.2f} seconds")
                     
                 except Exception as e:
                     logger.error(f"Failed to evaluate {model_name} at {stage}: {str(e)}")
-                    # Continue with other models
                     continue
         
-        # Save all results
+        # Save results
         self._save_results(all_results)
         
         # Generate comparison report
         self._generate_comparison_report(all_results)
         
-        logger.info(f"Completed evaluation of all models")
-        
+        logger.info("Completed evaluation of all models")
         return all_results
     
     def _load_evaluation_data(self, data_path: str) -> List[Dict[str, Any]]:
@@ -152,122 +184,164 @@ class LLMEvaluator:
         logger.info(f"Loaded {len(data)} evaluation examples")
         return data
     
-    def _generate_predictions(self, 
-                            model_name: str, 
-                            model_path: str, 
-                            eval_data: List[Dict[str, Any]]) -> List[str]:
-        """Generate predictions using the model."""
+    def _generate_predictions(self, model_name: str, questions: List[str]) -> List[str]:
+        """
+        Generate predictions using the actual model.
+        
+        Args:
+            model_name (str): Name of the model
+            questions (List[str]): List of questions
+            
+        Returns:
+            List[str]: Generated predictions
+        """
         try:
-            # Try to load and use the actual model
-            return self._generate_real_predictions(model_name, model_path, eval_data)
+            # Model configurations
+            model_configs = {
+                "llama3": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                "qwen3": "Qwen/Qwen2.5-7B-Instruct",
+                "deepseek": "deepseek-ai/deepseek-llm-7b-chat",
+                "gemma3": "google/gemma-2-9b-it",
+                "gpt_oss": "ollama:gpt-oss:20b"  # Special handling for Ollama
+            }
+            
+            if model_name not in model_configs:
+                raise ValueError(f"Unknown model: {model_name}")
+            
+            predictions = []
+            
+            # Handle Ollama models separately
+            if model_name == "gpt_oss":
+                predictions = self._generate_ollama_predictions(questions)
+            else:
+                # Handle HuggingFace models
+                predictions = self._generate_hf_predictions(model_name, model_configs[model_name], questions)
+            
+            logger.info(f"Generated {len(predictions)} predictions for {model_name}")
+            return predictions
+            
         except Exception as e:
-            logger.warning(f"Could not generate real predictions for {model_name}: {e}")
-            logger.info("Falling back to mock predictions")
-            return self._generate_mock_predictions(model_name, eval_data)
+            logger.error(f"Error generating predictions for {model_name}: {e}")
+            # Return placeholder predictions to avoid complete failure
+            return [f"Unable to generate prediction for question {i+1}" for i in range(len(questions))]
     
-    def _generate_real_predictions(self, 
-                                 model_name: str, 
-                                 model_path: str, 
-                                 eval_data: List[Dict[str, Any]]) -> List[str]:
-        """Generate predictions using the actual model."""
+    def _generate_hf_predictions(self, model_name: str, hf_model: str, questions: List[str]) -> List[str]:
+        """Generate predictions using HuggingFace models."""
         try:
             from transformers import AutoTokenizer, AutoModelForCausalLM
             import torch
             
-            logger.info(f"Loading model for inference: {model_name}")
+            logger.info(f"Loading {model_name} for inference...")
             
             # Load tokenizer and model
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
+            tokenizer = AutoTokenizer.from_pretrained(hf_model, trust_remote_code=True)
+            
+            # Add pad token if missing
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+            
             model = AutoModelForCausalLM.from_pretrained(
-                model_path,
+                hf_model,
                 torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-                device_map="auto" if torch.cuda.is_available() else None
+                device_map="auto" if torch.cuda.is_available() else "cpu",
+                trust_remote_code=True
             )
             
             predictions = []
             
-            for item in eval_data:
-                question = item['question']
-                
-                # Format input based on model type
-                if model_name == "llama3":
-                    input_text = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
-                elif model_name == "qwen3":
-                    input_text = f"<|im_start|>user\n{question}<|im_end|>\n<|im_start|>assistant\n"
-                elif model_name == "gemma3":
-                    input_text = f"<start_of_turn>user\n{question}<end_of_turn>\n<start_of_turn>model\n"
-                elif model_name == "pansophic":
-                    input_text = f"Întrebare: {question}\n\nRăspuns: "
-                else:  # deepseek
-                    input_text = f"User: {question}\n\nAssistant: "
-                
-                # Tokenize input
-                inputs = tokenizer(input_text, return_tensors="pt", truncation=True, max_length=512)
-                
-                # Generate response
-                with torch.no_grad():
-                    outputs = model.generate(
-                        **inputs,
-                        max_new_tokens=256,
-                        temperature=0.7,
-                        do_sample=True,
-                        pad_token_id=tokenizer.eos_token_id
-                    )
-                
-                # Decode response
-                response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-                
-                # Extract only the generated part
-                generated_text = response[len(input_text):].strip()
-                predictions.append(generated_text)
+            for question in questions:
+                try:
+                    # Format prompt based on model
+                    if model_name == "llama3":
+                        prompt = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+                    elif model_name == "qwen3":
+                        prompt = f"<|im_start|>user\n{question}<|im_end|>\n<|im_start|>assistant\n"
+                    elif model_name == "gemma3":
+                        prompt = f"<start_of_turn>user\n{question}<end_of_turn>\n<start_of_turn>model\n"
+                    else:  # deepseek
+                        prompt = f"User: {question}\n\nAssistant: "
+                    
+                    # Tokenize
+                    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
+                    
+                    # Move to device
+                    if torch.cuda.is_available():
+                        inputs = {k: v.cuda() for k, v in inputs.items()}
+                    
+                    # Generate
+                    with torch.no_grad():
+                        outputs = model.generate(
+                            **inputs,
+                            max_new_tokens=150,
+                            temperature=0.7,
+                            do_sample=True,
+                            pad_token_id=tokenizer.eos_token_id
+                        )
+                    
+                    # Decode response
+                    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                    
+                    # Extract answer (remove the prompt part)
+                    if prompt in response:
+                        answer = response.replace(prompt, "").strip()
+                    else:
+                        answer = response.strip()
+                    
+                    # Clean up answer
+                    if answer.startswith("Assistant:"):
+                        answer = answer[10:].strip()
+                    
+                    predictions.append(answer)
+                    
+                except Exception as e:
+                    logger.warning(f"Error generating prediction for question: {e}")
+                    predictions.append("Unable to generate answer")
             
-            logger.info(f"Generated {len(predictions)} predictions using real model")
             return predictions
             
         except ImportError:
-            raise Exception("Required libraries not available for real inference")
+            logger.error("Required libraries not available. Please install: pip install transformers torch")
+            raise
         except Exception as e:
-            raise Exception(f"Real inference failed: {str(e)}")
+            logger.error(f"HuggingFace prediction error: {e}")
+            raise
     
-    def _generate_mock_predictions(self, 
-                                 model_name: str, 
-                                 eval_data: List[Dict[str, Any]]) -> List[str]:
-        """Generate mock predictions for testing."""
-        logger.info(f"Generating mock predictions for {model_name}")
-        
-        # Mock responses based on model characteristics
-        model_styles = {
-            "llama3": "According to the document, ",
-            "qwen3": "Based on the information provided, ",
-            "deepseek": "The analysis shows that ",
-            "gemma3": "The document states that ",
-            "pansophic": "Conform documentului, "
-        }
-        
-        style_prefix = model_styles.get(model_name, "The answer is: ")
-        
-        predictions = []
-        for item in eval_data:
-            # Create a mock prediction based on the reference answer
-            reference = item['answer']
+    def _generate_ollama_predictions(self, questions: List[str]) -> List[str]:
+        """Generate predictions using Ollama."""
+        try:
+            import subprocess
             
-            # Simulate model-specific variations
-            if model_name == "pansophic":
-                # Romanian model might preserve more Romanian text
-                prediction = style_prefix + reference[:100] + "..."
-            else:
-                # Other models might paraphrase or summarize
-                words = reference.split()
-                if len(words) > 20:
-                    # Simulate summarization
-                    prediction = style_prefix + " ".join(words[:15]) + "..."
-                else:
-                    prediction = style_prefix + reference
+            predictions = []
             
-            predictions.append(prediction)
-        
-        logger.info(f"Generated {len(predictions)} mock predictions")
-        return predictions
+            for question in questions:
+                try:
+                    # Create prompt
+                    prompt = f"Question: {question}\nAnswer:"
+                    
+                    # Call Ollama
+                    result = subprocess.run([
+                        'ollama', 'run', 'gpt-oss:20b', prompt
+                    ], capture_output=True, text=True, timeout=60)
+                    
+                    if result.returncode == 0:
+                        answer = result.stdout.strip()
+                        predictions.append(answer)
+                    else:
+                        logger.warning(f"Ollama error: {result.stderr}")
+                        predictions.append("Unable to generate answer")
+                        
+                except subprocess.TimeoutExpired:
+                    logger.warning("Ollama timeout for question")
+                    predictions.append("Timeout generating answer")
+                except Exception as e:
+                    logger.warning(f"Error with Ollama: {e}")
+                    predictions.append("Error generating answer")
+            
+            return predictions
+            
+        except Exception as e:
+            logger.error(f"Ollama prediction error: {e}")
+            raise
     
     def _save_results(self, results: Dict[str, Any]):
         """Save evaluation results to file."""

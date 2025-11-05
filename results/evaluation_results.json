@@ -1,0 +1,25 @@
+{
+  "gpt_oss_before_training": {
+    "model_name": "gpt_oss",
+    "model_path": "gpt-oss:20b",
+    "stage": "before_training",
+    "metrics": {
+      "exact_match": 0.0,
+      "f1_score": 0.0903362056241587,
+      "bleu_score": 5.713404111226355e-10,
+      "rouge_l": 0.05642595374686254,
+      "semantic_similarity": 0.04908620944249181,
+      "answer_relevance": 0.04908620944249181,
+      "avg_prediction_length": 18.0,
+      "avg_reference_length": 575.9285714285714,
+      "length_ratio": 0.031253875728636984,
+      "romanian_accuracy": 0.5422261280099081,
+      "question_answering_accuracy": 0.040540161039644744,
+      "evaluation_time": 0.45446014404296875,
+      "num_examples": 98
+    },
+    "evaluation_time": 0.45446014404296875,
+    "num_examples": 98,
+    "timestamp": 1762344287.8569546
+  }
+}

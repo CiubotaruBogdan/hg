@@ -1,14 +1,17 @@
+#!/usr/bin/env python3
 """
-LLM Training and Evaluation Main Application
-Command-line interface for the complete LLM training and evaluation pipeline.
+HG 585 LLM Evaluation System
+Interactive Menu Interface
+
+Double-click this file to run the interactive menu system.
 """
 
 import os
 import sys
-import argparse
+import json
 import logging
-import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Any, Optional
+from pathlib import Path
 
 # Add src directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -20,458 +23,761 @@ from training import (
 )
 from evaluation import LLMEvaluator
 from evaluation.visualizer import ResultsVisualizer
+from model_manager import ModelManager
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('llm_evaluation.log'),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
 
-class LLMEvaluationApp:
-    """Main application class for LLM training and evaluation."""
+class InteractiveLLMEvaluationApp:
+    """Interactive menu-driven LLM evaluation application."""
     
-    def __init__(self, base_dir: str = "/home/ubuntu/llm-evaluation"):
-        self.base_dir = base_dir
-        self.data_dir = os.path.join(base_dir, "data")
-        self.models_dir = os.path.join(base_dir, "models")
-        self.results_dir = os.path.join(base_dir, "results")
+    def __init__(self):
+        # Set up directories
+        self.base_dir = Path(__file__).parent.parent
+        self.data_dir = self.base_dir / "data"
+        self.models_dir = self.base_dir / "models"
+        self.results_dir = self.base_dir / "results"
+        
+        # Create directories
+        for directory in [self.data_dir, self.models_dir, self.results_dir]:
+            directory.mkdir(exist_ok=True)
+        
+        # Initialize components
+        self.preprocessor = PreprocessingPipeline()
+        self.evaluator = LLMEvaluator()
+        self.visualizer = ResultsVisualizer(
+            results_file=str(self.results_dir / "evaluation_results.json"),
+            output_dir=str(self.results_dir / "visualizations")
+        )
+        self.model_manager = ModelManager(str(self.models_dir))
         
         # Model configurations
         self.models_config = {
             "llama3": {
-                "trainer_class": Llama3Trainer,
-                "model_path": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                "trainer": Llama3Trainer,
                 "description": "Meta's Llama 3.1 - General purpose flagship model"
             },
             "qwen3": {
-                "trainer_class": Qwen3Trainer,
-                "model_path": "Qwen/Qwen2.5-7B-Instruct",
+                "trainer": Qwen3Trainer,
                 "description": "Alibaba's Qwen 3 - Multilingual powerhouse"
             },
             "deepseek": {
-                "trainer_class": DeepSeekTrainer,
-                "model_path": "deepseek-ai/deepseek-llm-7b-chat",
+                "trainer": DeepSeekTrainer,
                 "description": "DeepSeek-V2 - Specialized reasoning model"
             },
             "gemma3": {
-                "trainer_class": Gemma3Trainer,
-                "model_path": "google/gemma-2-9b-it",
+                "trainer": Gemma3Trainer,
                 "description": "Google's Gemma 3 - Latest open-source model"
             },
             "gpt_oss": {
-                "trainer_class": GPTOSSTrainer,
-                "model_path": "gpt-oss:20b",
+                "trainer": GPTOSSTrainer,
                 "description": "GPT-OSS 20B - Open-source GPT model via Ollama"
             }
         }
-        
-        # Create directories
-        for directory in [self.data_dir, self.models_dir, self.results_dir]:
-            os.makedirs(directory, exist_ok=True)
     
-    def run_preprocessing(self, input_document: str, force: bool = False) -> bool:
-        """
-        Run the preprocessing pipeline.
+    def clear_screen(self):
+        """Clear the terminal screen."""
+        os.system('cls' if os.name == 'nt' else 'clear')
+    
+    def print_header(self):
+        """Print the application header."""
+        print("=" * 70)
+        print("           HG 585 LLM EVALUATION SYSTEM")
+        print("         Interactive Menu Interface")
+        print("=" * 70)
+        print()
+    
+    def print_main_menu(self):
+        """Print the main menu options."""
+        print("Please select an option:")
+        print()
+        print("  1. Preprocess Data Source (HG585.pdf)")
+        print("  2. Download Models")
+        print("  3. Check Models Status")
+        print("  4. Evaluate Initial Models (Before Training)")
+        print("  5. Train Models")
+        print("  6. Evaluate Models Post Training")
+        print()
+        print("  7. Run Complete Workflow (Steps 1-6)")
+        print("  8. Create Visualizations")
+        print("  9. View System Status")
+        print("  0. Exit")
+        print()
+    
+    def get_user_choice(self) -> str:
+        """Get user menu choice."""
+        while True:
+            try:
+                choice = input("Enter your choice (0-9): ").strip()
+                if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                    return choice
+                else:
+                    print("Invalid choice. Please enter a number between 0-9.")
+            except KeyboardInterrupt:
+                print("\nExiting...")
+                sys.exit(0)
+            except Exception:
+                print("Invalid input. Please try again.")
+    
+    def pause(self):
+        """Pause and wait for user input."""
+        print()
+        input("Press Enter to continue...")
+    
+    def step1_preprocess_data(self):
+        """Step 1: Preprocess data source."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 1: PREPROCESS DATA SOURCE")
+        print("-" * 40)
         
-        Args:
-            input_document (str): Path to input document
-            force (bool): Force reprocessing even if data exists
-            
-        Returns:
-            bool: Success status
-        """
-        logger.info("Starting preprocessing pipeline...")
+        input_file = self.data_dir / "raw" / "source.pdf"
         
-        processed_dir = os.path.join(self.data_dir, "processed")
-        train_file = os.path.join(processed_dir, "train.jsonl")
-        eval_file = os.path.join(processed_dir, "eval.jsonl")
+        if not input_file.exists():
+            print(f"❌ Source document not found: {input_file}")
+            print("Please place your HG585.pdf file as data/raw/source.pdf")
+            self.pause()
+            return False
         
-        # Check if preprocessing already done
-        if not force and os.path.exists(train_file) and os.path.exists(eval_file):
-            logger.info("Preprocessed data already exists. Use --force to reprocess.")
-            return True
+        print(f"📄 Processing document: {input_file}")
+        print("This will extract text and create training datasets...")
+        print()
         
         try:
-            # Create preprocessing pipeline
-            pipeline = PreprocessingPipeline(
-                max_chunk_size=512,
-                overlap_size=50,
-                train_ratio=0.8,
-                qa_pairs_per_chunk=2
-            )
-            
             # Run preprocessing
-            results = pipeline.process_document(input_document, processed_dir)
+            processed_dir = self.data_dir / "processed"
+            results = self.preprocessor.process_document(str(input_file), str(processed_dir))
             
-            logger.info("Preprocessing completed successfully!")
-            logger.info(f"Created {results['statistics']['train_examples']} training examples")
-            logger.info(f"Created {results['statistics']['eval_examples']} evaluation examples")
+            print("✅ Preprocessing completed successfully!")
+            print()
+            print("Results:")
+            print(f"  • Training examples: {results['statistics']['train_examples']}")
+            print(f"  • Evaluation examples: {results['statistics']['eval_examples']}")
+            print(f"  • Original words: {results['statistics']['original_word_count']:,}")
+            print(f"  • Text chunks: {results['statistics']['text_chunks']}")
             
+            self.pause()
             return True
             
         except Exception as e:
-            logger.error(f"Preprocessing failed: {str(e)}")
+            print(f"❌ Preprocessing failed: {str(e)}")
+            self.pause()
             return False
     
-    def run_training(self, models: Optional[List[str]] = None, config_overrides: Optional[Dict] = None) -> bool:
-        """
-        Run training for specified models.
+    def step2_download_models(self):
+        """Step 2: Download models."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 2: DOWNLOAD MODELS")
+        print("-" * 40)
         
-        Args:
-            models (List[str], optional): List of model names to train
-            config_overrides (Dict, optional): Configuration overrides
-            
-        Returns:
-            bool: Success status
-        """
-        if models is None:
-            models = list(self.models_config.keys())
+        print("Available models to download:")
+        print()
+        for i, (model_name, config) in enumerate(self.models_config.items(), 1):
+            print(f"  {i}. {model_name.upper()}: {config['description']}")
         
-        logger.info(f"Starting training for models: {', '.join(models)}")
+        print()
+        print("Options:")
+        print("  A. Download all models")
+        print("  S. Select specific models")
+        print("  C. Cancel")
+        print()
         
-        # Check if training data exists
-        train_file = os.path.join(self.data_dir, "processed", "train.jsonl")
-        eval_file = os.path.join(self.data_dir, "processed", "eval.jsonl")
+        choice = input("Enter your choice (A/S/C): ").strip().upper()
         
-        if not os.path.exists(train_file) or not os.path.exists(eval_file):
-            logger.error("Training data not found. Please run preprocessing first.")
+        if choice == 'C':
+            return False
+        elif choice == 'A':
+            models_to_download = list(self.models_config.keys())
+        elif choice == 'S':
+            models_to_download = self.select_models("download")
+            if not models_to_download:
+                return False
+        else:
+            print("Invalid choice.")
+            self.pause()
             return False
         
-        success_count = 0
+        print()
+        print(f"📥 Downloading {len(models_to_download)} models...")
+        print("This may take several minutes depending on your internet connection.")
+        print()
         
-        for model_name in models:
-            if model_name not in self.models_config:
-                logger.warning(f"Unknown model: {model_name}")
-                continue
+        try:
+            results = {}
+            for model_name in models_to_download:
+                print(f"Downloading {model_name}...")
+                results[model_name] = self.model_manager.download_model(model_name)
             
-            try:
-                logger.info(f"Training {model_name}...")
-                
-                # Get model configuration
-                model_config = self.models_config[model_name]
-                trainer_class = model_config["trainer_class"]
-                
-                # Create output directory
-                model_output_dir = os.path.join(self.models_dir, model_name)
-                
-                # Apply configuration overrides
-                training_config = config_overrides or {}
-                
-                # Create trainer
-                trainer = trainer_class(model_output_dir, training_config)
-                
-                # Run training
-                results = trainer.run_training_pipeline(train_file, eval_file)
-                
-                logger.info(f"Training completed for {model_name}")
-                logger.info(trainer.get_training_summary())
-                
-                success_count += 1
-                
-            except Exception as e:
-                logger.error(f"Training failed for {model_name}: {str(e)}")
-                continue
-        
-        logger.info(f"Training completed for {success_count}/{len(models)} models")
-        return success_count > 0
+            # Show results
+            successful = sum(1 for success in results.values() if success)
+            total = len(results)
+            
+            print()
+            print(f"Download completed: {successful}/{total} models successful")
+            print()
+            
+            for model_name, success in results.items():
+                status = "✅" if success else "❌"
+                print(f"{status} {model_name.upper()}")
+            
+            self.pause()
+            return successful > 0
+            
+        except Exception as e:
+            print(f"❌ Download failed: {str(e)}")
+            self.pause()
+            return False
     
-    def run_evaluation(self, 
-                      models: Optional[List[str]] = None,
-                      stages: Optional[List[str]] = None,
-                      create_visualizations: bool = True) -> bool:
-        """
-        Run evaluation for specified models and stages.
+    def step3_check_status(self):
+        """Step 3: Check models status."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 3: CHECK MODELS STATUS")
+        print("-" * 40)
         
-        Args:
-            models (List[str], optional): List of model names to evaluate
-            stages (List[str], optional): Evaluation stages
-            create_visualizations (bool): Whether to create visualizations
+        try:
+            # Get system info
+            system_info = self.model_manager.get_system_info()
             
-        Returns:
-            bool: Success status
-        """
-        if models is None:
-            models = list(self.models_config.keys())
-        
-        if stages is None:
-            stages = ["before_training", "after_training"]
-        
-        logger.info(f"Starting evaluation for models: {', '.join(models)}")
-        logger.info(f"Evaluation stages: {', '.join(stages)}")
+            print("SYSTEM INFORMATION:")
+            print(f"  GPU Available: {'✅' if system_info['gpu_available'] else '❌'}")
+            print(f"  Ollama Available: {'✅' if system_info['ollama_available'] else '❌'}")
+            print(f"  HuggingFace Auth: {'✅' if system_info['hf_auth'] else '❌'}")
+            print(f"  Downloaded Models: {system_info['downloaded_models']}/{system_info['total_models']}")
+            
+            if system_info['gpu_available'] and 'gpu_memory' in system_info:
+                print(f"  GPU Memory: {system_info['gpu_memory']} GB")
+            
+            print()
+            print("MODELS STATUS:")
+            print()
+            
+            # Get model status
+            status_report = self.model_manager.check_all_models_status()
+            
+            for model_name, status in status_report.items():
+                downloaded = "✅" if status["downloaded"] else "❌"
+                print(f"{downloaded} {model_name.upper()}")
+                print(f"     Description: {status['description']}")
+                print(f"     Size: {status['size_gb']}GB")
+                print(f"     Type: {status['type']}")
+                
+                if status["downloaded"]:
+                    print(f"     Status: Ready for training")
+                else:
+                    print(f"     Status: Not downloaded")
+                print()
+            
+            self.pause()
+            return True
+            
+        except Exception as e:
+            print(f"❌ Status check failed: {str(e)}")
+            self.pause()
+            return False
+    
+    def step4_evaluate_initial(self):
+        """Step 4: Evaluate initial models."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 4: EVALUATE INITIAL MODELS")
+        print("-" * 40)
         
         # Check if evaluation data exists
-        eval_file = os.path.join(self.data_dir, "processed", "eval.jsonl")
-        if not os.path.exists(eval_file):
-            logger.error("Evaluation data not found. Please run preprocessing first.")
+        eval_file = self.data_dir / "processed" / "eval.jsonl"
+        if not eval_file.exists():
+            print("❌ Evaluation data not found.")
+            print("Please run Step 1 (Preprocess Data) first.")
+            self.pause()
             return False
         
+        # Get available models
+        available_models = self.model_manager.get_available_models()
+        if not available_models:
+            print("❌ No models are downloaded.")
+            print("Please run Step 2 (Download Models) first.")
+            self.pause()
+            return False
+        
+        print("Available models for evaluation:")
+        for model in available_models:
+            print(f"  • {model.upper()}")
+        
+        print()
+        print("Options:")
+        print("  A. Evaluate all available models")
+        print("  S. Select specific models")
+        print("  C. Cancel")
+        print()
+        
+        choice = input("Enter your choice (A/S/C): ").strip().upper()
+        
+        if choice == 'C':
+            return False
+        elif choice == 'A':
+            models_to_evaluate = available_models
+        elif choice == 'S':
+            models_to_evaluate = self.select_models("evaluate", available_models)
+            if not models_to_evaluate:
+                return False
+        else:
+            print("Invalid choice.")
+            self.pause()
+            return False
+        
+        print()
+        print(f"🔍 Evaluating {len(models_to_evaluate)} models (before training)...")
+        print("This will test the models' baseline performance on HG585 questions.")
+        print()
+        
         try:
-            # Create evaluator
-            evaluator = LLMEvaluator(self.results_dir)
-            
-            # Prepare models configuration for evaluation
-            eval_models_config = {}
-            for model_name in models:
-                if model_name in self.models_config:
-                    eval_models_config[model_name] = self.models_config[model_name]["model_path"]
-            
             # Run evaluation
-            results = evaluator.evaluate_all_models(
-                eval_models_config,
-                eval_file,
-                stages
+            results = self.evaluator.evaluate_models(
+                models_to_evaluate,
+                str(eval_file),
+                stages=["before_training"],
+                output_dir=str(self.results_dir)
             )
             
-            logger.info("Evaluation completed successfully!")
-            
-            # Find best model
-            best_model, best_score = evaluator.get_best_model()
-            if best_model:
-                logger.info(f"Best performing model: {best_model} (F1: {best_score:.4f})")
-            
             # Create visualizations
-            if create_visualizations:
-                self.create_visualizations()
+            print("Creating visualizations...")
+            viz_dir = self.results_dir / "visualizations"
+            self.visualizer.create_all_visualizations(results, str(viz_dir))
             
+            print("✅ Initial evaluation completed!")
+            print(f"Results saved to: {self.results_dir}")
+            
+            self.pause()
             return True
             
         except Exception as e:
-            logger.error(f"Evaluation failed: {str(e)}")
+            print(f"❌ Evaluation failed: {str(e)}")
+            self.pause()
             return False
     
-    def create_visualizations(self) -> bool:
-        """Create visualization charts from evaluation results."""
-        logger.info("Creating visualizations...")
+    def step5_train_models(self):
+        """Step 5: Train models."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 5: TRAIN MODELS")
+        print("-" * 40)
         
-        results_file = os.path.join(self.results_dir, "evaluation_results.json")
-        if not os.path.exists(results_file):
-            logger.error("Evaluation results not found. Please run evaluation first.")
+        # Check prerequisites
+        train_file = self.data_dir / "processed" / "train.jsonl"
+        if not train_file.exists():
+            print("❌ Training data not found.")
+            print("Please run Step 1 (Preprocess Data) first.")
+            self.pause()
+            return False
+        
+        available_models = self.model_manager.get_available_models()
+        if not available_models:
+            print("❌ No models are downloaded.")
+            print("Please run Step 2 (Download Models) first.")
+            self.pause()
+            return False
+        
+        print("Available models for training:")
+        for model in available_models:
+            print(f"  • {model.upper()}")
+        
+        print()
+        print("Options:")
+        print("  A. Train all available models")
+        print("  S. Select specific models")
+        print("  C. Cancel")
+        print()
+        
+        choice = input("Enter your choice (A/S/C): ").strip().upper()
+        
+        if choice == 'C':
+            return False
+        elif choice == 'A':
+            models_to_train = available_models
+        elif choice == 'S':
+            models_to_train = self.select_models("train", available_models)
+            if not models_to_train:
+                return False
+        else:
+            print("Invalid choice.")
+            self.pause()
+            return False
+        
+        # Get training parameters
+        print()
+        print("Training Configuration:")
+        try:
+            epochs = int(input("Number of epochs (default 3): ") or "3")
+            batch_size = int(input("Batch size (default 2): ") or "2")
+        except ValueError:
+            epochs, batch_size = 3, 2
+        
+        print()
+        print(f"🏋️ Training {len(models_to_train)} models...")
+        print(f"Configuration: {epochs} epochs, batch size {batch_size}")
+        print("This may take several hours depending on your hardware.")
+        print()
+        
+        try:
+            results = {}
+            for model_name in models_to_train:
+                print(f"Training {model_name.upper()}...")
+                
+                # Get trainer class
+                trainer_class = self.models_config[model_name]["trainer"]
+                trainer = trainer_class()
+                
+                # Train model
+                config = {
+                    'epochs': epochs,
+                    'batch_size': batch_size,
+                    'learning_rate': 1e-5,
+                    'max_length': 512
+                }
+                
+                success = trainer.train(
+                    str(train_file),
+                    str(self.models_dir / model_name),
+                    config
+                )
+                
+                results[model_name] = success
+                status = "✅" if success else "❌"
+                print(f"{status} {model_name.upper()} training completed")
+                print()
+            
+            # Show results
+            successful = sum(1 for success in results.values() if success)
+            total = len(results)
+            
+            print(f"Training completed: {successful}/{total} models successful")
+            
+            self.pause()
+            return successful > 0
+            
+        except Exception as e:
+            print(f"❌ Training failed: {str(e)}")
+            self.pause()
+            return False
+    
+    def step6_evaluate_final(self):
+        """Step 6: Evaluate models post training."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 6: EVALUATE MODELS POST TRAINING")
+        print("-" * 40)
+        
+        # Check prerequisites
+        eval_file = self.data_dir / "processed" / "eval.jsonl"
+        if not eval_file.exists():
+            print("❌ Evaluation data not found.")
+            print("Please run Step 1 (Preprocess Data) first.")
+            self.pause()
+            return False
+        
+        # Check for trained models
+        trained_models = []
+        for model_name in self.models_config.keys():
+            model_dir = self.models_dir / model_name
+            if model_dir.exists() and any(model_dir.iterdir()):
+                trained_models.append(model_name)
+        
+        if not trained_models:
+            print("❌ No trained models found.")
+            print("Please run Step 5 (Train Models) first.")
+            self.pause()
+            return False
+        
+        print("Available trained models:")
+        for model in trained_models:
+            print(f"  • {model.upper()}")
+        
+        print()
+        print("Options:")
+        print("  A. Evaluate all trained models")
+        print("  S. Select specific models")
+        print("  C. Cancel")
+        print()
+        
+        choice = input("Enter your choice (A/S/C): ").strip().upper()
+        
+        if choice == 'C':
+            return False
+        elif choice == 'A':
+            models_to_evaluate = trained_models
+        elif choice == 'S':
+            models_to_evaluate = self.select_models("evaluate", trained_models)
+            if not models_to_evaluate:
+                return False
+        else:
+            print("Invalid choice.")
+            self.pause()
+            return False
+        
+        print()
+        print(f"🔍 Evaluating {len(models_to_evaluate)} models (after training)...")
+        print("This will compare before/after training performance.")
+        print()
+        
+        try:
+            # Run evaluation
+            results = self.evaluator.evaluate_models(
+                models_to_evaluate,
+                str(eval_file),
+                stages=["before_training", "after_training"],
+                output_dir=str(self.results_dir)
+            )
+            
+            # Create visualizations
+            print("Creating comparison visualizations...")
+            viz_dir = self.results_dir / "visualizations"
+            self.visualizer.create_all_visualizations(results, str(viz_dir))
+            
+            print("✅ Final evaluation completed!")
+            print("📊 Comparison charts and reports generated!")
+            print(f"Results saved to: {self.results_dir}")
+            
+            self.pause()
+            return True
+            
+        except Exception as e:
+            print(f"❌ Final evaluation failed: {str(e)}")
+            self.pause()
+            return False
+    
+    def step7_complete_workflow(self):
+        """Step 7: Run complete workflow."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 7: COMPLETE WORKFLOW")
+        print("-" * 40)
+        
+        print("This will run all 6 steps automatically:")
+        print("  1. Preprocess Data")
+        print("  2. Download Models")
+        print("  3. Check Status")
+        print("  4. Evaluate Initial Models")
+        print("  5. Train Models")
+        print("  6. Evaluate Final Models")
+        print()
+        
+        confirm = input("Continue with complete workflow? (y/N): ").strip().lower()
+        if confirm != 'y':
+            return False
+        
+        print()
+        print("🚀 Starting complete workflow...")
+        print()
+        
+        # Step 1: Preprocess
+        print("Step 1/6: Preprocessing data...")
+        if not self.step1_preprocess_data():
+            print("❌ Workflow failed at preprocessing step")
+            return False
+        
+        # Step 2: Download
+        print("Step 2/6: Downloading models...")
+        if not self.step2_download_models():
+            print("❌ Workflow failed at download step")
+            return False
+        
+        # Step 3: Status (always succeeds)
+        print("Step 3/6: Checking status...")
+        self.step3_check_status()
+        
+        # Step 4: Initial evaluation
+        print("Step 4/6: Initial evaluation...")
+        if not self.step4_evaluate_initial():
+            print("❌ Workflow failed at initial evaluation step")
+            return False
+        
+        # Step 5: Training
+        print("Step 5/6: Training models...")
+        if not self.step5_train_models():
+            print("❌ Workflow failed at training step")
+            return False
+        
+        # Step 6: Final evaluation
+        print("Step 6/6: Final evaluation...")
+        if not self.step6_evaluate_final():
+            print("❌ Workflow failed at final evaluation step")
+            return False
+        
+        print()
+        print("🎉 Complete workflow finished successfully!")
+        print("All models have been trained and evaluated on HG585 data.")
+        
+        self.pause()
+        return True
+    
+    def step8_create_visualizations(self):
+        """Step 8: Create visualizations."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 8: CREATE VISUALIZATIONS")
+        print("-" * 40)
+        
+        results_file = self.results_dir / "evaluation_results.json"
+        if not results_file.exists():
+            print("❌ No evaluation results found.")
+            print("Please run evaluation steps first.")
+            self.pause()
             return False
         
         try:
-            viz_dir = os.path.join(self.results_dir, "visualizations")
-            visualizer = ResultsVisualizer(results_file, viz_dir)
+            print("📊 Creating visualizations...")
             
-            visualizer.create_all_visualizations()
-            visualizer.generate_summary_report()
+            # Load results
+            with open(results_file, 'r') as f:
+                results = json.load(f)
             
-            logger.info(f"Visualizations created in: {viz_dir}")
+            # Create visualizations
+            viz_dir = self.results_dir / "visualizations"
+            self.visualizer.create_all_visualizations(results, str(viz_dir))
+            
+            print("✅ Visualizations created successfully!")
+            print(f"Charts saved to: {viz_dir}")
+            
+            self.pause()
             return True
             
         except Exception as e:
-            logger.error(f"Visualization creation failed: {str(e)}")
+            print(f"❌ Visualization creation failed: {str(e)}")
+            self.pause()
             return False
     
-    def run_full_pipeline(self, 
-                         input_document: str,
-                         models: Optional[List[str]] = None,
-                         config_overrides: Optional[Dict] = None) -> bool:
-        """
-        Run the complete pipeline: preprocessing, training, and evaluation.
+    def step9_system_status(self):
+        """Step 9: View system status."""
+        self.clear_screen()
+        self.print_header()
+        print("STEP 9: SYSTEM STATUS")
+        print("-" * 40)
         
-        Args:
-            input_document (str): Path to input document
-            models (List[str], optional): List of model names
-            config_overrides (Dict, optional): Configuration overrides
+        try:
+            # Check data files
+            print("DATA FILES:")
+            source_file = self.data_dir / "raw" / "source.pdf"
+            train_file = self.data_dir / "processed" / "train.jsonl"
+            eval_file = self.data_dir / "processed" / "eval.jsonl"
             
-        Returns:
-            bool: Success status
-        """
-        logger.info("Starting full LLM evaluation pipeline...")
-        start_time = time.time()
-        
-        # Step 1: Preprocessing
-        if not self.run_preprocessing(input_document):
-            logger.error("Pipeline failed at preprocessing stage")
+            print(f"  Source document: {'✅' if source_file.exists() else '❌'}")
+            print(f"  Training data: {'✅' if train_file.exists() else '❌'}")
+            print(f"  Evaluation data: {'✅' if eval_file.exists() else '❌'}")
+            
+            # Check models
+            print()
+            print("MODELS:")
+            available_models = self.model_manager.get_available_models()
+            for model_name in self.models_config.keys():
+                downloaded = "✅" if model_name in available_models else "❌"
+                
+                # Check if trained
+                model_dir = self.models_dir / model_name
+                trained = "✅" if model_dir.exists() and any(model_dir.iterdir()) else "❌"
+                
+                print(f"  {model_name.upper()}: Downloaded {downloaded}, Trained {trained}")
+            
+            # Check results
+            print()
+            print("RESULTS:")
+            results_file = self.results_dir / "evaluation_results.json"
+            viz_dir = self.results_dir / "visualizations"
+            
+            print(f"  Evaluation results: {'✅' if results_file.exists() else '❌'}")
+            print(f"  Visualizations: {'✅' if viz_dir.exists() and any(viz_dir.iterdir()) else '❌'}")
+            
+            self.pause()
+            return True
+            
+        except Exception as e:
+            print(f"❌ Status check failed: {str(e)}")
+            self.pause()
             return False
-        
-        # Step 2: Training
-        if not self.run_training(models, config_overrides):
-            logger.error("Pipeline failed at training stage")
-            return False
-        
-        # Step 3: Evaluation
-        if not self.run_evaluation(models):
-            logger.error("Pipeline failed at evaluation stage")
-            return False
-        
-        total_time = time.time() - start_time
-        logger.info(f"Full pipeline completed successfully in {total_time:.2f} seconds!")
-        
-        return True
     
-    def list_models(self):
-        """List available models with descriptions."""
-        print("Available Models:")
-        print("=" * 50)
-        for name, config in self.models_config.items():
-            print(f"• {name}: {config['description']}")
-        print()
-    
-    def get_status(self):
-        """Get current status of the application."""
-        print("LLM Evaluation Application Status:")
-        print("=" * 40)
-        
-        # Check preprocessing
-        train_file = os.path.join(self.data_dir, "processed", "train.jsonl")
-        eval_file = os.path.join(self.data_dir, "processed", "eval.jsonl")
-        preprocessing_done = os.path.exists(train_file) and os.path.exists(eval_file)
-        print(f"Preprocessing: {'✓ Complete' if preprocessing_done else '✗ Not done'}")
-        
-        # Check training
-        trained_models = []
-        for model_name in self.models_config.keys():
-            model_dir = os.path.join(self.models_dir, model_name)
-            if os.path.exists(model_dir) and os.listdir(model_dir):
-                trained_models.append(model_name)
-        
-        print(f"Training: {len(trained_models)}/{len(self.models_config)} models trained")
-        if trained_models:
-            print(f"  Trained models: {', '.join(trained_models)}")
-        
-        # Check evaluation
-        results_file = os.path.join(self.results_dir, "evaluation_results.json")
-        evaluation_done = os.path.exists(results_file)
-        print(f"Evaluation: {'✓ Complete' if evaluation_done else '✗ Not done'}")
-        
-        # Check visualizations
-        viz_dir = os.path.join(self.results_dir, "visualizations")
-        viz_done = os.path.exists(viz_dir) and os.listdir(viz_dir)
-        print(f"Visualizations: {'✓ Complete' if viz_done else '✗ Not done'}")
+    def select_models(self, action: str, available_models: List[str] = None) -> List[str]:
+        """Helper method to select specific models."""
+        if available_models is None:
+            available_models = list(self.models_config.keys())
         
         print()
+        print(f"Select models to {action}:")
+        for i, model in enumerate(available_models, 1):
+            print(f"  {i}. {model.upper()}")
+        
+        print()
+        print("Enter model numbers separated by spaces (e.g., 1 3 5):")
+        
+        try:
+            choices = input("Your selection: ").strip().split()
+            selected_models = []
+            
+            for choice in choices:
+                idx = int(choice) - 1
+                if 0 <= idx < len(available_models):
+                    selected_models.append(available_models[idx])
+                else:
+                    print(f"Invalid choice: {choice}")
+            
+            return selected_models
+            
+        except (ValueError, KeyboardInterrupt):
+            return []
+    
+    def run(self):
+        """Run the interactive menu system."""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            self.print_main_menu()
+            
+            choice = self.get_user_choice()
+            
+            if choice == '0':
+                print("Goodbye!")
+                break
+            elif choice == '1':
+                self.step1_preprocess_data()
+            elif choice == '2':
+                self.step2_download_models()
+            elif choice == '3':
+                self.step3_check_status()
+            elif choice == '4':
+                self.step4_evaluate_initial()
+            elif choice == '5':
+                self.step5_train_models()
+            elif choice == '6':
+                self.step6_evaluate_final()
+            elif choice == '7':
+                self.step7_complete_workflow()
+            elif choice == '8':
+                self.step8_create_visualizations()
+            elif choice == '9':
+                self.step9_system_status()
 
 
 def main():
-    """Main entry point for the application."""
-    parser = argparse.ArgumentParser(
-        description="LLM Training and Evaluation Application",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Run full pipeline (uses data/raw/source.pdf by default)
-  python main.py full
-  
-  # Run with custom document
-  python main.py full --input /path/to/document.pdf
-  
-  # Run only preprocessing
-  python main.py preprocess
-  
-  # Train specific models
-  python main.py train --models llama3 gpt_oss
-  
-  # Evaluate all models
-  python main.py evaluate
-  
-  # Create visualizations
-  python main.py visualize
-  
-  # Check status
-  python main.py status
-        """
-    )
-    
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    
-    # Full pipeline command
-    full_parser = subparsers.add_parser('full', help='Run complete pipeline')
-    full_parser.add_argument('--input', default='data/raw/source.pdf', help='Input document path (default: data/raw/source.pdf)')
-    full_parser.add_argument('--models', nargs='+', help='Models to train/evaluate')
-    full_parser.add_argument('--epochs', type=int, default=2, help='Training epochs')
-    full_parser.add_argument('--batch-size', type=int, default=2, help='Batch size')
-    
-    # Preprocessing command
-    preprocess_parser = subparsers.add_parser('preprocess', help='Run preprocessing only')
-    preprocess_parser.add_argument('--input', default='data/raw/source.pdf', help='Input document path (default: data/raw/source.pdf)')
-    preprocess_parser.add_argument('--force', action='store_true', help='Force reprocessing')
-    
-    # Training command
-    train_parser = subparsers.add_parser('train', help='Run training only')
-    train_parser.add_argument('--models', nargs='+', help='Models to train')
-    train_parser.add_argument('--epochs', type=int, default=2, help='Training epochs')
-    train_parser.add_argument('--batch-size', type=int, default=2, help='Batch size')
-    
-    # Evaluation command
-    eval_parser = subparsers.add_parser('evaluate', help='Run evaluation only')
-    eval_parser.add_argument('--models', nargs='+', help='Models to evaluate')
-    eval_parser.add_argument('--stages', nargs='+', choices=['before_training', 'after_training'],
-                           help='Evaluation stages')
-    eval_parser.add_argument('--no-viz', action='store_true', help='Skip visualizations')
-    
-    # Visualization command
-    viz_parser = subparsers.add_parser('visualize', help='Create visualizations only')
-    
-    # Status command
-    status_parser = subparsers.add_parser('status', help='Show application status')
-    
-    # List models command
-    list_parser = subparsers.add_parser('list', help='List available models')
-    
-    args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return
-    
-    # Create application instance
-    app = LLMEvaluationApp()
-    
+    """Main entry point."""
     try:
-        if args.command == 'full':
-            config_overrides = {
-                'epochs': args.epochs,
-                'batch_size': args.batch_size,
-                'max_length': 256  # Shorter for testing
-            }
-            success = app.run_full_pipeline(args.input, args.models, config_overrides)
-            
-        elif args.command == 'preprocess':
-            success = app.run_preprocessing(args.input, args.force)
-            
-        elif args.command == 'train':
-            config_overrides = {
-                'epochs': args.epochs,
-                'batch_size': args.batch_size,
-                'max_length': 256
-            }
-            success = app.run_training(args.models, config_overrides)
-            
-        elif args.command == 'evaluate':
-            success = app.run_evaluation(args.models, args.stages, not args.no_viz)
-            
-        elif args.command == 'visualize':
-            success = app.create_visualizations()
-            
-        elif args.command == 'status':
-            app.get_status()
-            success = True
-            
-        elif args.command == 'list':
-            app.list_models()
-            success = True
-            
-        else:
-            parser.print_help()
-            success = False
-        
-        if success:
-            logger.info("Command completed successfully!")
-        else:
-            logger.error("Command failed!")
-            sys.exit(1)
-            
+        app = InteractiveLLMEvaluationApp()
+        app.run()
     except KeyboardInterrupt:
-        logger.info("Operation cancelled by user")
-        sys.exit(1)
+        print("\nExiting...")
+        sys.exit(0)
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        print(f"Error: {str(e)}")
+        input("Press Enter to exit...")
         sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-
