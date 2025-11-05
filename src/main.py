@@ -53,9 +53,13 @@ class InteractiveLLMEvaluationApp:
         # Initialize components
         self.preprocessor = PreprocessingPipeline()
         self.evaluator = LLMEvaluator()
+        self.results_file = str(self.results_dir / "evaluation_results.json")
+        self.visualizations_dir = str(self.results_dir / "visualizations")
+        # Lazy-load visualizer to avoid error when results file doesn't exist
         self.visualizer = ResultsVisualizer(
-            results_file=str(self.results_dir / "evaluation_results.json"),
-            output_dir=str(self.results_dir / "visualizations")
+            results_file=self.results_file,
+            output_dir=self.visualizations_dir,
+            lazy_load=True
         )
         self.model_manager = ModelManager(str(self.models_dir))
         
