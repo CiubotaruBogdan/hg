@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 from datetime import datetime
 import logging
+import torch
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseLLMTrainer(ABC):
-    """Base class for LLM trainers."""
+    """Base class for LLM trainers with GPU optimization."""
     
     def __init__(self, 
                  model_name: str,
@@ -29,6 +30,10 @@ class BaseLLMTrainer(ABC):
         self.model_path = model_path
         self.output_dir = output_dir
         self.config = config or self._get_default_config()
+        
+        # GPU setup
+        self.device = self._setup_device()
+        self.gpu_config = self._get_gpu_config()
         
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
@@ -41,8 +46,129 @@ class BaseLLMTrainer(ABC):
             'epochs': 0,
             'steps': 0,
             'best_loss': float('inf'),
-            'final_loss': None
+            'final_loss': None,
+            'device_used': str(self.device),
+            'gpu_memory_used': None
         }
+        
+        logger.info(f"Trainer initialized for {model_name}")
+        logger.info(f"Device: {self.device}")
+        if torch.cuda.is_available():
+            logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+    
+    def _setup_device(self) -> torch.device:
+        """Setup and optimize device for training."""
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            
+            # GPU optimization settings
+            torch.backends.cudnn.benchmark = True  # Optimize for consistent input sizes
+            torch.backends.cuda.matmul.allow_tf32 = True  # Allow TF32 for faster training
+            torch.backends.cudnn.allow_tf32 = True
+            
+            # Clear GPU cache
+            torch.cuda.empty_cache()
+            
+            logger.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+            logger.info(f"CUDA Version: {torch.version.cuda}")
+            
+            return device
+        else:
+            logger.warning("CUDA not available, using CPU")
+            return torch.device("cpu")
+    
+    def _get_gpu_config(self) -> Dict[str, Any]:
+        """Get GPU-optimized configuration."""
+        if not torch.cuda.is_available():
+            return {
+                'mixed_precision': False,
+                'gradient_checkpointing': False,
+                'max_batch_size': 1,
+                'dataloader_num_workers': 0
+            }
+        
+        # Get GPU memory
+        gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        
+        # Optimize based on GPU memory
+        if gpu_memory_gb >= 24:  # High-end GPU (RTX 4090, A100, etc.)
+            config = {
+                'mixed_precision': True,
+                'gradient_checkpointing': True,
+                'max_batch_size': 8,
+                'dataloader_num_workers': 4,
+                'pin_memory': True
+            }
+        elif gpu_memory_gb >= 12:  # Mid-range GPU (RTX 4070 Ti, etc.)
+            config = {
+                'mixed_precision': True,
+                'gradient_checkpointing': True,
+                'max_batch_size': 4,
+                'dataloader_num_workers': 2,
+                'pin_memory': True
+            }
+        elif gpu_memory_gb >= 8:  # Entry-level GPU (RTX 4060 Ti, etc.)
+            config = {
+                'mixed_precision': True,
+                'gradient_checkpointing': True,
+                'max_batch_size': 2,
+                'dataloader_num_workers': 1,
+                'pin_memory': True
+            }
+        else:  # Low VRAM GPU
+            config = {
+                'mixed_precision': True,
+                'gradient_checkpointing': True,
+                'max_batch_size': 1,
+                'dataloader_num_workers': 0,
+                'pin_memory': False
+            }
+        
+        logger.info(f"GPU Config: {config}")
+        return config
+    
+    def get_gpu_memory_usage(self) -> Dict[str, float]:
+        """Get current GPU memory usage."""
+        if not torch.cuda.is_available():
+            return {'allocated': 0, 'reserved': 0, 'free': 0}
+        
+        allocated = torch.cuda.memory_allocated() / 1024**3  # GB
+        reserved = torch.cuda.memory_reserved() / 1024**3   # GB
+        total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        free = total - reserved
+        
+        return {
+            'allocated': round(allocated, 2),
+            'reserved': round(reserved, 2),
+            'free': round(free, 2),
+            'total': round(total, 2)
+        }
+    
+    def optimize_memory(self):
+        """Optimize GPU memory usage."""
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+    
+    def log_gpu_stats(self):
+        """Log current GPU statistics."""
+        if torch.cuda.is_available():
+            memory = self.get_gpu_memory_usage()
+            logger.info(f"GPU Memory - Allocated: {memory['allocated']:.2f}GB, "
+                       f"Reserved: {memory['reserved']:.2f}GB, "
+                       f"Free: {memory['free']:.2f}GB")
+            
+            # Log temperature if available
+            try:
+                import subprocess
+                result = subprocess.run(['nvidia-smi', '--query-gpu=temperature.gpu', 
+                                       '--format=csv,noheader,nounits'], 
+                                     capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    temp = result.stdout.strip()
+                    logger.info(f"GPU Temperature: {temp}°C")
+            except Exception:
+                pass  # Temperature monitoring not critical
     
     @abstractmethod
     def _get_default_config(self) -> Dict[str, Any]:

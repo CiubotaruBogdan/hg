@@ -4,12 +4,11 @@ Handles downloading, status checking, and management of LLM models.
 """
 
 import os
-import json
-import logging
 import subprocess
-import requests
-from typing import Dict, List, Any, Optional
+import logging
 from pathlib import Path
+from typing import Dict, List, Any, Optional
+import torch
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -139,6 +138,109 @@ class ModelManager:
                 logger.warning(f"Error getting Ollama model size: {e}")
         
         return size_info
+
+    def get_system_info(self) -> Dict[str, Any]:
+        """
+        Get comprehensive system information including GPU details.
+        
+        Returns:
+            dict: System information including GPU, memory, and authentication status
+        """
+        info = {
+            "gpu_available": torch.cuda.is_available(),
+            "gpu_count": 0,
+            "gpu_names": [],
+            "gpu_memory": [],
+            "cuda_version": None,
+            "pytorch_version": torch.__version__,
+            "hf_auth": self.check_huggingface_auth(),
+            "ollama_available": self.check_ollama_status(),
+            "system_memory_gb": 0,
+            "python_version": None
+        }
+        
+        # GPU Information
+        if torch.cuda.is_available():
+            info["gpu_count"] = torch.cuda.device_count()
+            info["cuda_version"] = torch.version.cuda
+            
+            for i in range(torch.cuda.device_count()):
+                gpu_props = torch.cuda.get_device_properties(i)
+                info["gpu_names"].append(gpu_props.name)
+                info["gpu_memory"].append(round(gpu_props.total_memory / 1024**3, 1))
+        
+        # System Memory
+        try:
+            import psutil
+            info["system_memory_gb"] = round(psutil.virtual_memory().total / 1024**3, 1)
+        except ImportError:
+            logger.warning("psutil not available for memory detection")
+        
+        # Python Version
+        import sys
+        info["python_version"] = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        
+        return info
+    
+    def get_gpu_recommendations(self) -> Dict[str, Any]:
+        """
+        Get GPU-specific recommendations for training configuration.
+        
+        Returns:
+            dict: Recommended settings based on available GPU
+        """
+        if not torch.cuda.is_available():
+            return {
+                "device": "cpu",
+                "batch_size": 1,
+                "mixed_precision": False,
+                "gradient_checkpointing": True,
+                "recommendation": "Consider using a GPU server for faster training"
+            }
+        
+        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        gpu_name = torch.cuda.get_device_name(0)
+        
+        if gpu_memory >= 24:  # High-end GPU
+            return {
+                "device": "cuda",
+                "batch_size": 8,
+                "mixed_precision": True,
+                "gradient_checkpointing": True,
+                "gpu_memory_gb": round(gpu_memory, 1),
+                "gpu_name": gpu_name,
+                "recommendation": "Excellent for training large models. Consider using larger batch sizes."
+            }
+        elif gpu_memory >= 12:  # Mid-range GPU
+            return {
+                "device": "cuda",
+                "batch_size": 4,
+                "mixed_precision": True,
+                "gradient_checkpointing": True,
+                "gpu_memory_gb": round(gpu_memory, 1),
+                "gpu_name": gpu_name,
+                "recommendation": "Good for training. Use mixed precision to maximize efficiency."
+            }
+        elif gpu_memory >= 8:  # Entry-level GPU
+            return {
+                "device": "cuda",
+                "batch_size": 2,
+                "mixed_precision": True,
+                "gradient_checkpointing": True,
+                "gpu_memory_gb": round(gpu_memory, 1),
+                "gpu_name": gpu_name,
+                "recommendation": "Suitable for training with small batch sizes. Enable all memory optimizations."
+            }
+        else:  # Low VRAM GPU
+            return {
+                "device": "cuda",
+                "batch_size": 1,
+                "mixed_precision": True,
+                "gradient_checkpointing": True,
+                "gpu_memory_gb": round(gpu_memory, 1),
+                "gpu_name": gpu_name,
+                "recommendation": "Limited VRAM. Use batch size 1 and consider gradient accumulation."
+            }
 
     def authenticate_huggingface(self) -> bool:
         """

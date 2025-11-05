@@ -1,67 +1,95 @@
-# LLM Training and Evaluation System
+# 🤖 HG 585 LLM Evaluation System
 
-A comprehensive system for training and evaluating Large Language Models (LLMs) on Romanian government documents, specifically designed for the HG 585/2002 document analysis.
+A comprehensive system for training and evaluating Large Language Models on Romanian government document HG 585/2002 "National Standards on the Protection of Classified Information".
 
-## Overview
+## ✨ Features
 
-This system trains and compares 5 popular LLMs on a Romanian legal document to evaluate their question-answering capabilities before and after fine-tuning. The goal is to determine which model performs best for Romanian legal text comprehension.
+- **5 LLM Models**: Llama 3.1, Qwen 3, DeepSeek-V2, Gemma 3, GPT-OSS 20B
+- **Interactive Menu**: Simple numbered interface - no command line arguments
+- **GPU Optimization**: Native CUDA support with automatic optimization
+- **Cross-Platform**: Works on Linux, Windows, and macOS
+- **LoRA Training**: Parameter-efficient fine-tuning
+- **Real Evaluation**: Before/after training comparison with multiple metrics
+- **Professional Visualizations**: Charts and reports for model comparison
+- **Model Export**: Save trained models for future use
+- **Disk Size Monitoring**: Track model storage usage
+- **HuggingFace Integration**: Seamless model downloading and authentication
 
-## Selected Models
+## 🚀 Quick Start
 
-The system evaluates and compares **5 state-of-the-art LLMs**:
-
-1. **Llama 3.1** (Meta) - General-purpose flagship model
-2. **Qwen 3** (Alibaba) - Multilingual powerhouse  
-3. **DeepSeek-V2** (DeepSeek AI) - Specialized reasoning model
-4. **Gemma 3** (Google) - Latest open-source model
-5. **GPT-OSS 20B** (Ollama) - Open-source GPT model via Ollama
-
-## Features
-
-- **Document Processing**: Extracts and cleans text from Word and PDF documents
-- **Data Preparation**: Creates question-answer pairs for training
-- **Model Training**: Fine-tunes models using LoRA (Low-Rank Adaptation)
-- **Comprehensive Evaluation**: Multiple metrics including BLEU, ROUGE, F1, exact match
-- **Visualization**: Professional charts and reports
-- **Romanian Language Support**: Specialized handling for Romanian text and diacritics
-
-## Project Structure
-
-```
-llm-evaluation/
-├── data/
-│   ├── raw/                 # Original documents
-│   └── processed/           # Processed training data
-├── src/
-│   ├── preprocessing/       # Data preprocessing modules
-│   ├── training/           # Model training scripts
-│   ├── evaluation/         # Evaluation and metrics
-│   └── main.py            # Main application interface
-├── models/                 # Trained model outputs
-├── results/               # Evaluation results and visualizations
-└── requirements.txt       # Python dependencies
-```
-
-## Installation
-
-1. **Clone or download the project**
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Place your HG 585 document** as `data/raw/source.pdf` (or `source.docx`)
-
-## Usage
-
-### Interactive Menu
-
-Simply double-click `main.py` or run from your terminal:
-
+### **Linux/macOS (GPU Optimized):**
 ```bash
+# Clone and setup
+git clone https://github.com/CiubotaruBogdan/hg.git
+cd hg
+chmod +x gpu_setup.sh
+./gpu_setup.sh
+
+# Run system
+source venv/bin/activate
 python src/main.py
 ```
 
-This will launch the interactive menu:
+### **Windows (GPU Optimized):**
+```cmd
+# Download and extract from GitHub
+# Then run:
+setup_windows.bat
+
+# Run system
+run_system.bat
+```
+
+### **Simple Usage:**
+1. **Double-click main.py** (or run setup scripts)
+2. **Select menu options** 1-6 for complete workflow
+3. **No command line arguments** needed!
+
+## 📋 System Requirements
+
+### **Minimum:**
+- **OS**: Linux, Windows 10+, macOS
+- **CPU**: 4+ cores
+- **RAM**: 16GB+ (32GB+ recommended)
+- **Storage**: 100GB+ free space
+- **Python**: 3.8+
+
+### **Recommended (GPU Training):**
+- **GPU**: NVIDIA with 8GB+ VRAM
+- **CUDA**: 11.8+ or 12.1+
+- **Examples**: RTX 4060 Ti, RTX 4070 Ti, RTX 4090, A100
+
+## 🎮 GPU Performance
+
+### **Training Speed (per model):**
+```
+CPU Only:     2-8 hours per model
+RTX 4060 Ti:  30-60 minutes per model
+RTX 4070 Ti:  20-45 minutes per model  
+RTX 4090:     10-30 minutes per model
+A100:         8-20 minutes per model
+```
+
+### **Automatic GPU Optimization:**
+- **Memory-based batch sizing** - automatic based on VRAM
+- **Mixed precision training** - 2x speed improvement
+- **Gradient checkpointing** - memory optimization
+- **Temperature monitoring** - safety checks
+- **Performance recommendations** - tailored to your GPU
+
+## 🤖 Selected Models
+
+The system evaluates and compares **5 state-of-the-art LLMs**:
+
+1. **Llama 3.1** (Meta) - General-purpose flagship model 🔒
+2. **Qwen 3** (Alibaba) - Multilingual powerhouse  
+3. **DeepSeek-V2** (DeepSeek AI) - Specialized reasoning model
+4. **Gemma 3** (Google) - Latest open-source model 🔒
+5. **GPT-OSS 20B** (Ollama) - Open-source GPT model via Ollama
+
+*🔒 = Requires HuggingFace authentication*
+
+## 📱 Interactive Menu Interface
 
 ```
 ======================================================================
@@ -86,49 +114,28 @@ Please select an option:
 Enter your choice (0-9): 
 ```
 
-### Step-by-Step Usage
+## 🔐 Authentication Setup
 
-#### 1. Preprocessing
+### **HuggingFace (for Llama 3.1 & Gemma 3):**
 ```bash
-python src/main.py preprocess
-```
-This will:
-- Parse the document at data/raw/source.pdf (or .docx)
-- Clean and normalize text
-- Generate question-answer pairs
-- Create train/eval datasets
+# Get token from: https://huggingface.co/settings/tokens
+huggingface-cli login
 
-#### 2. Training
+# Or use menu option 2 → 0 for guided setup
+```
+
+### **Ollama (for GPT-OSS):**
 ```bash
-python src/main.py train --models llama3 qwen3 --epochs 3 --batch-size 4
+# Linux/macOS
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama pull gpt-oss:20b
+
+# Windows: Download from https://ollama.ai/download/windows
 ```
-This will:
-- Load pre-trained models
-- Apply LoRA fine-tuning
-- Train on the HG 585 dataset
-- Save trained models
 
-#### 3. Evaluation
-```bash
-python src/main.py evaluate --models llama3 qwen3
-```
-This will:
-- Test models before and after training
-- Compute comprehensive metrics
-- Generate comparison reports
-- Create visualizations
+## 📊 Evaluation Metrics
 
-### Configuration Options
-
-- `--epochs`: Number of training epochs (default: 2)
-- `--batch-size`: Training batch size (default: 2)
-- `--models`: Specific models to process
-- `--force`: Force reprocessing of existing data
-- `--no-viz`: Skip visualization creation
-
-## Evaluation Metrics
-
-The system computes multiple metrics to assess model performance:
+The system computes comprehensive metrics:
 
 - **Exact Match**: Percentage of exactly matching answers
 - **F1 Score**: Token-level overlap between prediction and reference
@@ -136,137 +143,123 @@ The system computes multiple metrics to assess model performance:
 - **ROUGE-L**: Longest common subsequence-based metric
 - **Semantic Similarity**: Content-based similarity measure
 - **Romanian Accuracy**: Romanian-specific character and diacritic accuracy
-- **Question-Answering Accuracy**: Relevance to original questions
 
-## Output Files
+## 📁 Project Structure
 
-### Results Directory
-- `evaluation_results.json`: Complete evaluation data
-- `comparison_report.md`: Detailed comparison analysis
-- `visualizations/`: Charts and graphs
-  - `metrics_comparison.png`: Bar charts of all metrics
-  - `training_improvement.png`: Before/after training analysis
-  - `model_ranking.png`: Performance ranking
-  - `metrics_heatmap.png`: Heatmap visualization
-  - `performance_radar.png`: Multi-dimensional comparison
-
-### Model Directories
-Each trained model saves:
-- Model weights and configuration
-- Training statistics and logs
-- LoRA adapter weights
-
-## Technical Details
-
-### Training Configuration
-- **LoRA Parameters**: r=16, alpha=32, dropout=0.1
-- **Learning Rate**: 1e-5 to 2e-5 (model-dependent)
-- **Sequence Length**: 512 tokens
-- **Gradient Accumulation**: 4 steps
-- **Evaluation Strategy**: Every 250 steps
-
-### Data Processing
-- **Chunk Size**: 512 tokens with 50-token overlap
-- **Q&A Generation**: 2 pairs per chunk
-- **Train/Eval Split**: 80/20
-- **Text Cleaning**: Romanian diacritic normalization
-
-### Hardware Requirements
-- **GPU**: Recommended for training (CUDA-compatible)
-- **RAM**: 16GB+ recommended
-- **Storage**: 10GB+ for models and data
-
-## Mock Mode
-
-When GPU or required libraries are unavailable, the system automatically falls back to mock mode, which:
-- Simulates training and evaluation
-- Generates realistic mock metrics
-- Allows testing of the complete pipeline
-- Useful for development and demonstration
-
-## Troubleshooting
-
-### Common Issues
-
-1. **CUDA Out of Memory**
-   - Reduce batch size: `--batch-size 1`
-   - Use gradient accumulation
-   - Enable LoRA (default)
-
-2. **Missing Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Document Not Found**
-   - Ensure HG 585 document is in `data/raw/`
-   - Check file permissions
-
-4. **Model Download Issues**
-   - Ensure internet connection
-   - Check Hugging Face Hub access
-   - Models will fall back to mock mode if unavailable
-
-### Performance Tips
-
-- Use GPU for training when available
-- Start with smaller models for testing
-- Reduce sequence length for faster processing
-- Use mock mode for development
-
-## Example Workflow
-
-```bash
-# 1. Check status
-python src/main.py status
-
-# 2. List available models
-python src/main.py list
-
-# 3. Run preprocessing (uses data/raw/source.pdf)
-python src/main.py preprocess
-
-# 4. Train specific models
-python src/main.py train --models llama3 gpt_oss --epochs 2
-
-# 5. Evaluate all models
-python src/main.py evaluate
-
-# 6. Create additional visualizations
-python src/main.py visualize
+```
+llm-evaluation/
+├── data/
+│   ├── raw/                 # HG585.pdf document
+│   └── processed/           # Generated training data
+├── src/
+│   ├── preprocessing/       # Document processing
+│   ├── training/           # Model training scripts
+│   ├── evaluation/         # Evaluation and metrics
+│   ├── model_manager.py    # Model downloading and management
+│   └── main.py            # Interactive menu interface
+├── models/                 # Downloaded and trained models
+├── results/               # Evaluation results and visualizations
+├── logs/                  # Training and system logs
+├── gpu_setup.sh          # Linux/macOS GPU setup
+├── setup_windows.bat     # Windows GPU setup
+└── requirements.txt      # Python dependencies
 ```
 
-## Results Interpretation
+## 🔧 Advanced Usage
 
-### Key Metrics to Watch
-- **F1 Score**: Overall performance indicator
-- **BLEU Score**: Translation/generation quality
-- **Romanian Accuracy**: Language-specific performance
-- **Training Improvement**: Before vs. after training gains
+### **Individual Steps:**
+```bash
+# Activate environment
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate.bat  # Windows
 
-### Expected Outcomes
-- Pansophic should excel at Romanian-specific tasks
-- Llama 3.1 should show strong general performance
-- All models should improve after training
-- Visualizations will highlight strengths/weaknesses
+# Run specific steps
+python src/main.py  # Then select menu options
+```
 
-## Contributing
+### **GPU Monitoring:**
+```bash
+# Monitor GPU during training
+python monitor_gpu.py
 
-To extend the system:
-1. Add new models in `src/training/`
-2. Implement new metrics in `src/evaluation/metrics.py`
-3. Add visualizations in `src/evaluation/visualizer.py`
-4. Update model configurations in `src/main.py`
+# Check system status
+python src/main.py  # Option 9
+```
 
-## License
+### **Model Export:**
+After training, models are automatically exported to:
+```
+models/{model_name}_trained_export/
+├── model/                  # Complete trained model
+├── tokenizer/             # Tokenizer files
+├── lora_adapters/         # LoRA adapter weights
+├── export_metadata.json  # Export information
+└── usage_example.py      # Ready-to-use script
+```
 
-This project is for educational and research purposes. Please respect the licenses of the underlying models and datasets.
+## 📈 Results and Visualizations
 
-## Support
+### **Generated Reports:**
+- `results/evaluation_results.json` - Complete metrics data
+- `results/comparison_report.md` - Detailed analysis
+- `results/visualizations/` - Professional charts
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Review log files for error details
-3. Ensure all dependencies are installed
-4. Verify input document format and location
+### **Visualization Types:**
+- **Metrics Comparison** - Bar charts of all metrics
+- **Training Improvement** - Before/after analysis
+- **Model Ranking** - Performance leaderboard
+- **Performance Radar** - Multi-dimensional comparison
 
+## 🔧 Troubleshooting
+
+### **GPU Issues:**
+```bash
+# Check GPU availability
+nvidia-smi
+python -c "import torch; print(torch.cuda.is_available())"
+
+# If CUDA not available, system automatically uses CPU
+```
+
+### **Memory Issues:**
+- System automatically adjusts batch size based on available VRAM
+- Use gradient checkpointing (enabled by default)
+- Close other GPU applications during training
+
+### **Model Download Issues:**
+- Check internet connection
+- Verify HuggingFace authentication for protected models
+- System provides clear error messages and fallback options
+
+## 💡 Tips for Best Performance
+
+### **Hardware:**
+1. **Use GPU** for 10-50x faster training
+2. **SSD storage** for faster model loading
+3. **Adequate cooling** - keep GPU under 80°C
+4. **Sufficient VRAM** - 8GB minimum, 16GB+ recommended
+
+### **Software:**
+1. **Close unnecessary applications** during training
+2. **Use virtual environments** to avoid conflicts
+3. **Monitor system resources** during training
+4. **Regular driver updates** for optimal GPU performance
+
+## 📚 Documentation
+
+- **Windows Setup**: See `WINDOWS_SETUP.md`
+- **Server Deployment**: See `SERVER_DEPLOYMENT_GUIDE.md`
+- **GPU Optimization**: Automatic based on hardware detection
+- **Model Details**: Check individual training scripts in `src/training/`
+
+## 🆘 Support
+
+- **GitHub Issues**: https://github.com/CiubotaruBogdan/hg/issues
+- **System Check**: Use menu option 9 for comprehensive status
+- **GPU Setup**: Run setup scripts for automated configuration
+- **Logs**: Check `logs/` directory for detailed error information
+
+---
+
+**Ready to evaluate LLMs on Romanian legal documents! 🇷🇴🤖**

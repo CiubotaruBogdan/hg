@@ -272,31 +272,50 @@ class InteractiveLLMEvaluationApp:
         try:
             # Get system info
             system_info = self.model_manager.get_system_info()
+            gpu_recommendations = self.model_manager.get_gpu_recommendations()
             
-            print("SYSTEM INFORMATION:")
-            print(f"  GPU Available: {'✅' if system_info['gpu_available'] else '❌'}")
-            print(f"  Ollama Available: {'✅' if system_info['ollama_available'] else '❌'}")
-            print(f"  HuggingFace Auth: {'✅' if system_info['hf_auth'] else '❌'}")
-            print(f"  Downloaded Models: {system_info['downloaded_models']}/{system_info['total_models']}")
+            print("💻 SYSTEM INFORMATION:")
+            print(f"  Python Version: {system_info['python_version']}")
+            print(f"  PyTorch Version: {system_info['pytorch_version']}")
+            print(f"  System Memory: {system_info['system_memory_gb']} GB")
+            print()
             
-            if system_info['gpu_available'] and 'gpu_memory' in system_info:
-                print(f"  GPU Memory: {system_info['gpu_memory']} GB")
-            
-            # Check HuggingFace authentication status
-            try:
-                import subprocess
-                result = subprocess.run(['huggingface-cli', 'whoami'], 
-                                      capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    username = result.stdout.strip()
-                    print(f"  HuggingFace User: {username}")
-                else:
-                    print(f"  HuggingFace User: Not logged in")
-            except:
-                print(f"  HuggingFace User: CLI not available")
+            # GPU Information
+            if system_info['gpu_available']:
+                print("🎮 GPU INFORMATION:")
+                print(f"  CUDA Available: ✅ Yes")
+                print(f"  CUDA Version: {system_info['cuda_version']}")
+                print(f"  GPU Count: {system_info['gpu_count']}")
+                
+                for i, (name, memory) in enumerate(zip(system_info['gpu_names'], system_info['gpu_memory'])):
+                    print(f"  GPU {i}: {name} ({memory} GB VRAM)")
+                
+                print()
+                print("🔧 TRAINING RECOMMENDATIONS:")
+                print(f"  Recommended Batch Size: {gpu_recommendations['batch_size']}")
+                print(f"  Mixed Precision: {'✅ Enabled' if gpu_recommendations['mixed_precision'] else '❌ Disabled'}")
+                print(f"  Gradient Checkpointing: {'✅ Enabled' if gpu_recommendations['gradient_checkpointing'] else '❌ Disabled'}")
+                print(f"  💡 {gpu_recommendations['recommendation']}")
+            else:
+                print("🎮 GPU INFORMATION:")
+                print(f"  CUDA Available: ❌ No")
+                print(f"  💡 {gpu_recommendations['recommendation']}")
             
             print()
-            print("MODELS STATUS:")
+            
+            # Authentication Status
+            print("🔐 AUTHENTICATION STATUS:")
+            hf_user = self.model_manager.get_huggingface_user()
+            if hf_user:
+                print(f"  HuggingFace User: ✅ {hf_user}")
+            else:
+                print(f"  HuggingFace User: ❌ Not logged in")
+            
+            ollama_status = "✅ Available" if system_info['ollama_available'] else "❌ Not available"
+            print(f"  Ollama Status: {ollama_status}")
+            print()
+            
+            print("🤖 MODELS STATUS:")
             print()
             
             # Get model status
