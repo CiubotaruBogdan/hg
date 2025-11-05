@@ -57,6 +57,73 @@ class ModelManager:
             }
         }
     
+    def authenticate_huggingface(self) -> bool:
+        """
+        Authenticate with HuggingFace using CLI login.
+        
+        Returns:
+            bool: True if authentication successful, False otherwise
+        """
+        try:
+            import subprocess
+            
+            logger.info("Starting HuggingFace authentication...")
+            print("🔐 HuggingFace Authentication")
+            print("-" * 40)
+            print("This will open the HuggingFace login process.")
+            print("You will need your HuggingFace token from: https://huggingface.co/settings/tokens")
+            print()
+            
+            # Check if huggingface-cli is available
+            try:
+                result = subprocess.run(['huggingface-cli', '--version'], 
+                                      capture_output=True, text=True, timeout=10)
+                if result.returncode != 0:
+                    print("❌ huggingface-cli not found. Installing...")
+                    # Install huggingface-hub if not available
+                    subprocess.run(['pip', 'install', 'huggingface-hub[cli]'], check=True)
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                print("❌ Installing huggingface-hub CLI...")
+                subprocess.run(['pip', 'install', 'huggingface-hub[cli]'], check=True)
+            
+            print("Starting authentication process...")
+            print("Please follow the instructions in the terminal.")
+            print()
+            
+            # Run huggingface-cli login interactively
+            result = subprocess.run(['huggingface-cli', 'login'], 
+                                  stdin=None, stdout=None, stderr=None)
+            
+            if result.returncode == 0:
+                print("✅ HuggingFace authentication successful!")
+                logger.info("HuggingFace authentication completed successfully")
+                
+                # Verify authentication
+                try:
+                    result = subprocess.run(['huggingface-cli', 'whoami'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        username = result.stdout.strip()
+                        print(f"✅ Logged in as: {username}")
+                        return True
+                except:
+                    pass
+                
+                return True
+            else:
+                print("❌ Authentication failed or cancelled")
+                logger.warning("HuggingFace authentication failed")
+                return False
+                
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error during authentication: {e}")
+            logger.error(f"HuggingFace authentication error: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Unexpected error during authentication: {e}")
+            logger.error(f"Unexpected authentication error: {e}")
+            return False
+
     def check_huggingface_auth(self) -> bool:
         """Check if HuggingFace authentication is available."""
         try:

@@ -183,19 +183,33 @@ class InteractiveLLMEvaluationApp:
         print("Available models to download:")
         print()
         for i, (model_name, config) in enumerate(self.models_config.items(), 1):
-            print(f"  {i}. {model_name.upper()}: {config['description']}")
+            auth_required = "🔒" if model_name in ["llama3", "gemma3"] else ""
+            print(f"  {i}. {model_name.upper()}: {config['description']} {auth_required}")
         
         print()
         print("Options:")
+        print("  0. HuggingFace Authentication (Login with token)")
         print("  A. Download all models")
         print("  S. Select specific models")
         print("  C. Cancel")
         print()
         
-        choice = input("Enter your choice (A/S/C): ").strip().upper()
+        choice = input("Enter your choice (0/A/S/C): ").strip().upper()
         
         if choice == 'C':
             return False
+        elif choice == '0':
+            # HuggingFace authentication
+            print()
+            success = self.model_manager.authenticate_huggingface()
+            if success:
+                print()
+                print("Authentication completed! You can now download protected models.")
+            else:
+                print()
+                print("Authentication failed. You can still download public models.")
+            self.pause()
+            return self.step2_download_models()  # Return to menu
         elif choice == 'A':
             models_to_download = list(self.models_config.keys())
         elif choice == 'S':
@@ -258,6 +272,19 @@ class InteractiveLLMEvaluationApp:
             if system_info['gpu_available'] and 'gpu_memory' in system_info:
                 print(f"  GPU Memory: {system_info['gpu_memory']} GB")
             
+            # Check HuggingFace authentication status
+            try:
+                import subprocess
+                result = subprocess.run(['huggingface-cli', 'whoami'], 
+                                      capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    username = result.stdout.strip()
+                    print(f"  HuggingFace User: {username}")
+                else:
+                    print(f"  HuggingFace User: Not logged in")
+            except:
+                print(f"  HuggingFace User: CLI not available")
+            
             print()
             print("MODELS STATUS:")
             print()
@@ -267,7 +294,8 @@ class InteractiveLLMEvaluationApp:
             
             for model_name, status in status_report.items():
                 downloaded = "✅" if status["downloaded"] else "❌"
-                print(f"{downloaded} {model_name.upper()}")
+                auth_required = "🔒" if model_name in ["llama3", "gemma3"] else ""
+                print(f"{downloaded} {model_name.upper()} {auth_required}")
                 print(f"     Description: {status['description']}")
                 print(f"     Size: {status['size_gb']}GB")
                 print(f"     Type: {status['type']}")
@@ -275,8 +303,14 @@ class InteractiveLLMEvaluationApp:
                 if status["downloaded"]:
                     print(f"     Status: Ready for training")
                 else:
-                    print(f"     Status: Not downloaded")
+                    if model_name in ["llama3", "gemma3"]:
+                        print(f"     Status: Not downloaded (requires HuggingFace auth)")
+                    else:
+                        print(f"     Status: Not downloaded")
                 print()
+            
+            print("💡 Tip: Use option 0 in Download Models to authenticate with HuggingFace")
+            print("    for accessing protected models (Llama 3.1, Gemma 3)")
             
             self.pause()
             return True
