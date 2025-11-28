@@ -6,6 +6,8 @@ Handles downloading, status checking, and management of LLM models.
 import os
 import subprocess
 import logging
+import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 

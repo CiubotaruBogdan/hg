@@ -1,0 +1,38 @@
+# ========================================
+# HG 585 LLM Evaluation System - MINIMAL Requirements
+# Only essential dependencies for basic functionality
+# ========================================
+
+# Core ML Libraries (CPU only by default)
+torch>=2.1.0
+transformers>=4.35.0
+accelerate>=0.24.0
+peft>=0.6.0
+
+# HuggingFace Essentials
+huggingface-hub[cli]>=0.19.0
+tokenizers>=0.15.0
+
+# Document Processing
+python-docx>=1.2.0
+PyPDF2>=3.0.1
+
+# Basic Data Science
+pandas>=2.0.0
+numpy>=1.24.0
+
+# System Utilities
+psutil>=5.9.0
+tqdm>=4.66.0
+requests>=2.31.0
+
+# ========================================
+# Installation Instructions:
+# ========================================
+# Basic installation:
+# pip install -r requirements-minimal.txt
+#
+# For GPU support, also run:
+# pip install torch --index-url https://download.pytorch.org/whl/cu118
+#
+# Total size: ~2-3GB (vs 8-10GB for full requirements)
