@@ -1,12 +1,13 @@
-# 🤖 HG 585 LLM Evaluation System - Windows Edition
+# 🤖 HG 585 LLM Evaluation System
 
-A comprehensive system for training and evaluating Large Language Models on Romanian government document HG 585/2002 "National Standards on the Protection of Classified Information". This version is adapted for **Windows Server** environments.
+A comprehensive system for training and evaluating Large Language Models on Romanian government document HG 585/2002 "National Standards on the Protection of Classified Information".
 
 ## ✨ Features
 
 - **5 LLM Models**: Llama 3.1, Qwen 3, DeepSeek-V2, Gemma 3, GPT-OSS 20B
 - **Interactive Menu**: Simple numbered interface - no command line arguments
 - **GPU Optimization**: Native CUDA support with automatic optimization
+- **Cross-Platform**: Works on Linux, Windows, and macOS
 - **LoRA Training**: Parameter-efficient fine-tuning
 - **Real Evaluation**: Before/after training comparison with multiple metrics
 - **Professional Visualizations**: Charts and reports for model comparison
@@ -16,37 +17,38 @@ A comprehensive system for training and evaluating Large Language Models on Roma
 
 ## 🚀 Quick Start
 
-### **Automated Setup (Recommended)**
+### **Linux/macOS (GPU Optimized):**
+```bash
+# Clone and setup
+git clone https://github.com/CiubotaruBogdan/hg.git
+cd hg
+chmod +x gpu_setup.sh
+./gpu_setup.sh
 
-1.  **Download and Extract:**
-    *   Download the project from the GitHub repository as a ZIP file.
-    *   Extract the contents to a directory, for example: `C:\hg-llm-evaluation`
+# Run system
+source venv/bin/activate
+python src/main.py
+```
 
-2.  **Run Setup Script:**
-    *   Open a Command Prompt (`cmd.exe`) and navigate to the project directory.
-    *   Run the setup script:
-        ```cmd
-        cd C:\hg-llm-evaluation
-        setup.bat
-        ```
-    *   The script will automatically check for Python, detect your GPU, create a virtual environment, and install all necessary dependencies.
+### **Windows (GPU Optimized):**
+```cmd
+# Download and extract from GitHub
+# Then run:
+setup_windows.bat
 
-3.  **Run the System:**
-    *   After the setup is complete, you can run the main application using the provided batch file:
-        ```cmd
-        run_system.bat
-        ```
-    *   Alternatively, you can double-click `run_system.bat` in File Explorer.
+# Run system
+run_system.bat
+```
 
 ### **Simple Usage:**
-1.  **Run `run_system.bat`**
-2.  **Select menu options** 1-6 for the complete workflow.
-3.  **No command line arguments** are needed!
+1. **Double-click main.py** (or run setup scripts)
+2. **Select menu options** 1-6 for complete workflow
+3. **No command line arguments** needed!
 
 ## 📋 System Requirements
 
 ### **Minimum:**
-- **OS**: Windows 10 (1909+) / Windows 11 / Windows Server 2019+
+- **OS**: Linux, Windows 10+, macOS
 - **CPU**: 4+ cores
 - **RAM**: 16GB+ (32GB+ recommended)
 - **Storage**: 100GB+ free space
@@ -115,7 +117,7 @@ Enter your choice (0-9):
 ## 🔐 Authentication Setup
 
 ### **HuggingFace (for Llama 3.1 & Gemma 3):**
-```cmd
+```bash
 # Get token from: https://huggingface.co/settings/tokens
 huggingface-cli login
 
@@ -123,10 +125,12 @@ huggingface-cli login
 ```
 
 ### **Ollama (for GPT-OSS):**
-```cmd
-# Download from https://ollama.ai/download/windows
-# After installation, run:
+```bash
+# Linux/macOS
+curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull gpt-oss:20b
+
+# Windows: Download from https://ollama.ai/download/windows
 ```
 
 ## 📊 Evaluation Metrics
@@ -156,28 +160,31 @@ llm-evaluation/
 ├── models/                 # Downloaded and trained models
 ├── results/               # Evaluation results and visualizations
 ├── logs/                  # Training and system logs
-├── setup.bat              # Windows GPU setup
+├── gpu_setup.sh          # Linux/macOS GPU setup
+├── setup_windows.bat     # Windows GPU setup
 └── requirements.txt      # Python dependencies
 ```
 
 ## 🔧 Advanced Usage
 
 ### **Individual Steps:**
-```cmd
+```bash
 # Activate environment
-venv\Scripts\activate.bat
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate.bat  # Windows
 
 # Run specific steps
-python src\main.py  # Then select menu options
+python src/main.py  # Then select menu options
 ```
 
 ### **GPU Monitoring:**
-```cmd
+```bash
 # Monitor GPU during training
 python monitor_gpu.py
 
 # Check system status
-python src\main.py  # Option 9
+python src/main.py  # Option 9
 ```
 
 ### **Model Export:**
@@ -207,7 +214,7 @@ models/{model_name}_trained_export/
 ## 🔧 Troubleshooting
 
 ### **GPU Issues:**
-```cmd
+```bash
 # Check GPU availability
 nvidia-smi
 python -c "import torch; print(torch.cuda.is_available())"
@@ -228,71 +235,31 @@ python -c "import torch; print(torch.cuda.is_available())"
 ## 💡 Tips for Best Performance
 
 ### **Hardware:**
-1.  **Use GPU** for 10-50x faster training
-2.  **SSD storage** for faster model loading
-3.  **Adequate cooling** - keep GPU under 80°C
-4.  **Sufficient VRAM** - 8GB minimum, 16GB+ recommended
+1. **Use GPU** for 10-50x faster training
+2. **SSD storage** for faster model loading
+3. **Adequate cooling** - keep GPU under 80°C
+4. **Sufficient VRAM** - 8GB minimum, 16GB+ recommended
 
 ### **Software:**
-1.  **Close unnecessary applications** during training
-2.  **Use virtual environments** to avoid conflicts
-3.  **Monitor system resources** during training
-4.  **Regular driver updates** for optimal GPU performance
+1. **Close unnecessary applications** during training
+2. **Use virtual environments** to avoid conflicts
+3. **Monitor system resources** during training
+4. **Regular driver updates** for optimal GPU performance
+
+## 📚 Documentation
+
+- **Windows Setup**: See `WINDOWS_SETUP.md`
+- **Server Deployment**: See `SERVER_DEPLOYMENT_GUIDE.md`
+- **GPU Optimization**: Automatic based on hardware detection
+- **Model Details**: Check individual training scripts in `src/training/`
 
 ## 🆘 Support
 
 - **GitHub Issues**: https://github.com/CiubotaruBogdan/hg/issues
 - **System Check**: Use menu option 9 for comprehensive status
-- **GPU Setup**: Run `setup.bat` for automated configuration
+- **GPU Setup**: Run setup scripts for automated configuration
 - **Logs**: Check `logs/` directory for detailed error information
 
 ---
 
 **Ready to evaluate LLMs on Romanian legal documents! 🇷🇴🤖**
-
-
-## 🔧 Advanced Windows Setup & Troubleshooting
-
-For more detailed Windows setup instructions, including manual installation, GPU driver setup, and performance optimization, please refer to the following sections.
-
-### Manual Installation Steps
-
-1.  **Install Python:**
-    *   Download and install Python 3.8+ from [python.org](https://python.org/downloads/).
-    *   **Important:** Check the box for "Add Python to PATH" during installation.
-
-2.  **Create Virtual Environment:**
-    ```cmd
-    python -m venv venv
-    venv\Scripts\activate.bat
-    ```
-
-3.  **Install PyTorch:**
-    *   For GPU (CUDA 11.8):
-        ```cmd
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-        ```
-    *   For CPU only:
-        ```cmd
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-        ```
-
-4.  **Install Dependencies:**
-    ```cmd
-    pip install -r requirements.txt
-    ```
-
-### Windows Performance Optimization
-
-*   **PowerShell Execution Policy:** If you encounter script execution errors in PowerShell, run:
-    ```powershell
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-    ```
-*   **Windows Defender Exclusions:** For better performance, add the project folder (e.g., `C:\hg-llm-evaluation`) and Hugging Face cache folder (`C:\Users\{username}\.cache\huggingface`) to Windows Defender exclusions.
-*   **High Performance Power Plan:** Ensure your system is using the High Performance power plan, especially during training.
-
-### Common Troubleshooting
-
-*   **"Python not found"**: Reinstall Python and ensure "Add to PATH" is checked. Or, manually add the Python installation and scripts directory to your system's PATH environment variables.
-*   **"CUDA out of memory"**: The system automatically adjusts batch sizes, but if you still encounter this, try closing other GPU-intensive applications or restarting your system to clear VRAM.
-*   **"Access denied" errors**: Run your Command Prompt or PowerShell as an Administrator.

@@ -8,7 +8,14 @@ import subprocess
 import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-import torch
+
+# Try to import torch, but handle gracefully if not available
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -147,12 +154,12 @@ class ModelManager:
             dict: System information including GPU, memory, and authentication status
         """
         info = {
-            "gpu_available": torch.cuda.is_available(),
+            "gpu_available": TORCH_AVAILABLE and torch.cuda.is_available() if TORCH_AVAILABLE else False,
             "gpu_count": 0,
             "gpu_names": [],
             "gpu_memory": [],
             "cuda_version": None,
-            "pytorch_version": torch.__version__,
+            "pytorch_version": torch.__version__ if TORCH_AVAILABLE else "Not installed",
             "hf_auth": self.check_huggingface_auth(),
             "ollama_available": self.check_ollama_status(),
             "system_memory_gb": 0,
@@ -160,7 +167,7 @@ class ModelManager:
         }
         
         # GPU Information
-        if torch.cuda.is_available():
+        if TORCH_AVAILABLE and torch.cuda.is_available():
             info["gpu_count"] = torch.cuda.device_count()
             info["cuda_version"] = torch.version.cuda
             
@@ -189,6 +196,15 @@ class ModelManager:
         Returns:
             dict: Recommended settings based on available GPU
         """
+        if not TORCH_AVAILABLE:
+            return {
+                "device": "cpu",
+                "batch_size": 1,
+                "mixed_precision": False,
+                "gradient_checkpointing": True,
+                "recommendation": "Install PyTorch to enable GPU training. Run: pip install torch"
+            }
+        
         if not torch.cuda.is_available():
             return {
                 "device": "cpu",
@@ -566,27 +582,6 @@ class ModelManager:
         except ImportError:
             return False
     
-    def get_system_info(self) -> Dict[str, Any]:
-        """Get system information for model compatibility."""
-        info = {
-            "gpu_available": self._has_gpu(),
-            "ollama_available": self.check_ollama_status(),
-            "hf_auth": self.check_huggingface_auth(),
-            "total_models": len(self.models_config),
-            "downloaded_models": len(self.get_available_models())
-        }
-        
-        if info["gpu_available"]:
-            try:
-                import torch
-                info["gpu_count"] = torch.cuda.device_count()
-                info["gpu_memory"] = [torch.cuda.get_device_properties(i).total_memory // (1024**3) 
-                                    for i in range(torch.cuda.device_count())]
-            except Exception:
-                pass
-        
-        return info
-
 
 def main():
     """Test the model manager."""

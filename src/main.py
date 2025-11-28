@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """
-HG 585 LLM Evaluation System - Windows Edition
+HG 585 LLM Evaluation System
 Interactive Menu Interface
 
-Double-click this file to run the interactive menu system on Windows.
+Double-click this file to run the interactive menu system.
 """
 
 import os
@@ -53,13 +54,9 @@ class InteractiveLLMEvaluationApp:
         # Initialize components
         self.preprocessor = PreprocessingPipeline()
         self.evaluator = LLMEvaluator()
-        self.results_file = str(self.results_dir / "evaluation_results.json")
-        self.visualizations_dir = str(self.results_dir / "visualizations")
-        # Lazy-load visualizer to avoid error when results file doesn't exist
         self.visualizer = ResultsVisualizer(
-            results_file=self.results_file,
-            output_dir=self.visualizations_dir,
-            lazy_load=True
+            results_file=str(self.results_dir / "evaluation_results.json"),
+            output_dir=str(self.results_dir / "visualizations")
         )
         self.model_manager = ModelManager(str(self.models_dir))
         
@@ -89,7 +86,7 @@ class InteractiveLLMEvaluationApp:
     
     def clear_screen(self):
         """Clear the terminal screen."""
-        os.system('cls')
+        os.system('cls' if os.name == 'nt' else 'clear')
     
     def print_header(self):
         """Print the application header."""

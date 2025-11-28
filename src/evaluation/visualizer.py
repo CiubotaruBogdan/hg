@@ -24,41 +24,28 @@ sns.set_palette("husl")
 class ResultsVisualizer:
     """Visualizer for LLM evaluation results."""
     
-    def __init__(self, results_file: str, output_dir: str, lazy_load: bool = False):
+    def __init__(self, results_file: str, output_dir: str):
         self.results_file = results_file
         self.output_dir = output_dir
-        self.results = None if lazy_load else self._load_results()
+        self.results = self._load_results()
         
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
     
-    def _load_results(self) -> Optional[Dict[str, Any]]:
+    def _load_results(self) -> Dict[str, Any]:
         """Load evaluation results from JSON file."""
         if not os.path.exists(self.results_file):
-            return None
+            raise FileNotFoundError(f"Results file not found: {self.results_file}")
         
-        try:
-            with open(self.results_file, 'r', encoding='utf-8') as f:
-                results = json.load(f)
-            
-            logger.info(f"Loaded results for {len(results)} evaluations")
-            return results
-        except Exception as e:
-            logger.warning(f"Could not load results: {e}")
-            return None
+        with open(self.results_file, 'r', encoding='utf-8') as f:
+            results = json.load(f)
+        
+        logger.info(f"Loaded results for {len(results)} evaluations")
+        return results
     
-    def create_all_visualizations(self, results: Optional[Dict[str, Any]] = None):
+    def create_all_visualizations(self):
         """Create all available visualizations."""
         logger.info("Creating all visualizations...")
-        
-        # Use provided results or load from file
-        if results is not None:
-            self.results = results
-        elif self.results is None:
-            self.results = self._load_results()
-        
-        if not self.results:
-            raise ValueError("No evaluation results available. Please run evaluations first.")
         
         try:
             self.plot_metrics_comparison()
