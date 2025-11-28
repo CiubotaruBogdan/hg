@@ -1,6 +1,6 @@
 # 📦 Installation Guide - HG 585 LLM Evaluation System
 
-Windows-focused installation guide for training and evaluating LLMs on Romanian government documents.
+Windows installation guide for training and evaluating LLMs on Romanian government documents.
 
 ## 🚀 Quick Start (Windows Direct Installation)
 
@@ -8,75 +8,191 @@ Windows-focused installation guide for training and evaluating LLMs on Romanian 
 **Best for**: Direct installation on your Windows workstation
 **Models location**: `D:\llm_models\`
 **No virtual environment needed**
+**Full installation**: All features included (8-10GB)
 
 ```cmd
 # Run the automated setup
 setup_windows_direct.bat
 
 # Or manual installation
-pip install -r requirements-minimal.txt
+pip install -r requirements.txt
 pip install torch --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ---
 
-## 📦 Installation Types
+## 📦 What You Get
 
-### **Option 1: Minimal Installation** ⚡
-**Best for**: Testing, basic functionality, limited hardware
-**Size**: ~2-3GB
-**Time**: 5-10 minutes
-
-```cmd
-pip install -r requirements-minimal.txt
-```
-
-**What you get:**
-- ✅ Document processing (HG585.pdf)
-- ✅ Model downloading and management
-- ✅ Basic training capabilities
-- ✅ Interactive menu system
-- ❌ Advanced evaluation metrics
-- ❌ Professional visualizations
-- ❌ Web interfaces
-
----
-
-### **Option 2: Full Installation** 🎯
-**Best for**: Production use, complete evaluation, research
+### **Complete Installation** 🎯
 **Size**: ~8-10GB
 **Time**: 15-30 minutes
 
 ```cmd
-pip install -r requirements-full.txt
+pip install -r requirements.txt
 ```
 
-**What you get:**
-- ✅ Everything from minimal installation
+**Full feature set:**
+- ✅ Document processing (HG585.pdf)
+- ✅ Model downloading and management
+- ✅ Complete training capabilities
+- ✅ Interactive menu system
 - ✅ Advanced evaluation metrics (BLEU, ROUGE, etc.)
 - ✅ Professional visualizations and charts
 - ✅ Complete data science stack
 - ✅ Enhanced document processing
+- ✅ Web-based chat interfaces (Gradio, Streamlit)
+- ✅ API server functionality
+- ✅ Model export and deployment
 - ✅ Performance optimizations
 
 ---
 
-### **Option 3: Chat Interface Only** 💬
-**Best for**: Using already trained models, deployment
-**Size**: ~3-4GB
-**Time**: 10-15 minutes
+## 🎮 GPU Support
 
+### **For NVIDIA GPUs (Recommended):**
+
+#### **CUDA 11.8 (Most Compatible):**
 ```cmd
-pip install -r requirements-chat.txt
+pip install torch --index-url https://download.pytorch.org/whl/cu118
 ```
 
-**What you get:**
-- ✅ Model inference capabilities
-- ✅ Web-based chat interfaces (Gradio, Streamlit)
-- ✅ API server functionality
-- ✅ Trained model deployment
-- ❌ Training capabilities
-- ❌ Document processing
+#### **CUDA 12.1 (Latest):**
+```cmd
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+```
+
+### **Verify GPU Installation:**
+```cmd
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}')"
+```
+
+---
+
+## 📁 Models Storage
+
+### **Windows:**
+- **Default location**: `D:\llm_models\`
+- **Automatic creation**: System creates directory if it doesn't exist
+- **Organized structure**: Each model in its own subdirectory
+
+### **Custom Location:**
+You can specify a custom models directory by modifying the ModelManager initialization in the code.
+
+---
+
+## 📋 System Requirements
+
+### **Complete Installation:**
+- **OS**: Windows 10/11
+- **RAM**: 16GB+ (32GB recommended)
+- **Storage**: 50GB+ free space (plus models storage)
+- **CPU**: 8+ cores recommended
+- **GPU**: NVIDIA with 8GB+ VRAM recommended
+
+### **For GPU Training:**
+- **NVIDIA GPU**: RTX 4060 Ti or better
+- **VRAM**: 8GB minimum, 16GB+ recommended
+- **CUDA**: 11.8 or 12.1
+- **Drivers**: Latest NVIDIA drivers
+
+---
+
+## 🛠️ Windows Setup
+
+### **Automated Setup (Recommended):**
+```cmd
+# Run the automated setup
+setup_windows_direct.bat
+
+# Start the system
+python src/main.py
+```
+
+### **Manual Installation:**
+```cmd
+# Install all requirements
+pip install -r requirements.txt
+
+# Install GPU support
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+
+# Run system
+python src/main.py
+```
+
+### **Alternative Setup (Virtual Environment):**
+```cmd
+# Use the virtual environment setup
+setup_windows.bat
+
+# Activate and run
+venv\Scripts\activate.bat
+python src/main.py
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### **Common Issues:**
+
+#### **"Models directory not found"**
+- **Windows**: System automatically creates `D:\llm_models\`
+- **Custom**: Modify ModelManager initialization
+
+#### **"CUDA out of memory"**
+```cmd
+# System automatically adjusts based on available VRAM
+# Check GPU status in menu option 9
+```
+
+#### **"No module named 'torch'"**
+```cmd
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+```
+
+#### **"Permission denied" on Windows**
+```cmd
+# Run Command Prompt as Administrator
+# Or use setup_windows_direct.bat
+```
+
+#### **"pip is not recognized"**
+```cmd
+# Add Python to PATH or use full path
+python -m pip install -r requirements.txt
+```
+
+---
+
+## 💡 Recommendations
+
+### **For Windows Users:**
+1. Use **setup_windows_direct.bat** for automated setup
+2. Models automatically stored in `D:\llm_models\`
+3. No virtual environment needed
+4. Direct system integration
+5. GPU optimization automatic
+6. Complete feature set included
+
+### **Hardware Recommendations:**
+- **CPU**: Intel i7/i9 or AMD Ryzen 7/9
+- **RAM**: 32GB for comfortable training
+- **GPU**: RTX 4070 Ti or better for fast training
+- **Storage**: NVMe SSD for faster model loading
+
+---
+
+## 🆘 Support
+
+- **System Status**: Run `python src/main.py` → Option 9
+- **GPU Check**: Run `nvidia-smi` in Command Prompt
+- **Models Location**: Automatically displayed on startup
+- **Performance Tips**: See README.md for hardware-specific optimizations
+
+---
+
+**Ready to start on Windows? Run setup_windows_direct.bat! 🚀**
 
 ---
 

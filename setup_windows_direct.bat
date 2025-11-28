@@ -7,6 +7,7 @@ echo.
 
 echo 📋 This script will install the LLM evaluation system directly on your system.
 echo 📁 Models will be stored in: D:\llm_models\
+echo 📦 Full installation with all features (8-10GB)
 echo.
 
 :: Check if Python is installed
@@ -34,36 +35,13 @@ echo ✅ pip found:
 pip --version
 echo.
 
-:: Ask user for installation type
-echo 📦 Choose installation type:
-echo.
-echo   1. Minimal (2-3GB) - Basic functionality, testing
-echo   2. Full (8-10GB) - Complete features, production ready
-echo   3. Chat Only (3-4GB) - For using already trained models
-echo.
-set /p choice="Enter your choice (1/2/3): "
-
-if "%choice%"=="1" (
-    set requirements_file=requirements-minimal.txt
-    echo 📥 Installing minimal requirements...
-) else if "%choice%"=="2" (
-    set requirements_file=requirements-full.txt
-    echo 📥 Installing full requirements...
-) else if "%choice%"=="3" (
-    set requirements_file=requirements-chat.txt
-    echo 📥 Installing chat requirements...
-) else (
-    echo ❌ Invalid choice. Using minimal installation.
-    set requirements_file=requirements-minimal.txt
-)
-
 echo.
 echo 🔄 Installing Python packages...
-echo This may take 10-30 minutes depending on your internet connection.
+echo This may take 15-30 minutes depending on your internet connection.
 echo.
 
 :: Install requirements
-pip install -r %requirements_file%
+pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo.
     echo ❌ Installation failed. Please check the error messages above.
