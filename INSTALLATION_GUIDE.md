@@ -2,7 +2,40 @@
 
 Choose the installation option that best fits your needs and hardware capabilities.
 
-## 🚀 Quick Start (Recommended)
+## 🚀 Quick Start (Direct Installation - Recommended)
+
+### **Windows - Direct Installation** 🪟
+**Best for**: Direct installation on your Windows workstation
+**Models location**: `D:\llm_models\`
+**No virtual environment needed**
+
+```cmd
+# Run the automated setup
+setup_windows_direct.bat
+
+# Or manual installation
+pip install -r requirements-minimal.txt
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+```
+
+### **Linux/macOS - Direct Installation** 🐧
+**Best for**: Direct installation on your Linux/macOS system
+**Models location**: `./models/`
+**No virtual environment needed**
+
+```bash
+# Run the automated setup
+chmod +x setup_linux_direct.sh
+./setup_linux_direct.sh
+
+# Or manual installation
+pip3 install -r requirements-minimal.txt --user
+pip3 install torch --index-url https://download.pytorch.org/whl/cu118 --user
+```
+
+---
+
+## 📦 Installation Types
 
 ### **Option 1: Minimal Installation** ⚡
 **Best for**: Testing, basic functionality, limited hardware
@@ -83,17 +116,34 @@ python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}, De
 
 ---
 
+## 📁 Models Storage
+
+### **Windows:**
+- **Default location**: `D:\llm_models\`
+- **Automatic creation**: System creates directory if it doesn't exist
+- **Organized structure**: Each model in its own subdirectory
+
+### **Linux/macOS:**
+- **Default location**: `./models/`
+- **Automatic creation**: System creates directory if it doesn't exist
+- **Organized structure**: Each model in its own subdirectory
+
+### **Custom Location:**
+You can specify a custom models directory by modifying the ModelManager initialization in the code.
+
+---
+
 ## 📋 System Requirements
 
 ### **Minimal Installation:**
 - **RAM**: 8GB+ (16GB recommended)
-- **Storage**: 20GB+ free space
+- **Storage**: 20GB+ free space (plus models storage)
 - **CPU**: 4+ cores
 - **GPU**: Optional (CPU training supported)
 
 ### **Full Installation:**
 - **RAM**: 16GB+ (32GB recommended)
-- **Storage**: 50GB+ free space
+- **Storage**: 50GB+ free space (plus models storage)
 - **CPU**: 8+ cores recommended
 - **GPU**: NVIDIA with 8GB+ VRAM recommended
 
@@ -107,42 +157,55 @@ python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}, De
 
 ## 🛠️ Platform-Specific Setup
 
-### **Windows:**
+### **Windows (Direct Installation):**
 ```cmd
-# Run the automated setup
-setup_windows.bat
+# Automated setup (recommended)
+setup_windows_direct.bat
 
-# Or manual installation
+# Manual installation
 pip install -r requirements-minimal.txt
 pip install torch --index-url https://download.pytorch.org/whl/cu118
+
+# Run system
+python src/main.py
 ```
 
-### **Linux/macOS:**
+### **Linux/macOS (Direct Installation):**
 ```bash
-# Run the automated setup
+# Automated setup (recommended)
+chmod +x setup_linux_direct.sh
+./setup_linux_direct.sh
+
+# Manual installation
+pip3 install -r requirements-minimal.txt --user
+pip3 install torch --index-url https://download.pytorch.org/whl/cu118 --user
+
+# Run system
+python3 src/main.py
+```
+
+### **Server with Virtual Environment (Advanced):**
+```bash
+# Use the original GPU setup script
 chmod +x gpu_setup.sh
 ./gpu_setup.sh
 
-# Or manual installation
-pip install -r requirements-minimal.txt
-pip install torch --index-url https://download.pytorch.org/whl/cu118
+# Activate environment and run
+source venv/bin/activate
+python src/main.py
 ```
 
 ---
 
 ## 📊 Installation Comparison
 
-| Feature | Minimal | Full | Chat Only |
-|---------|---------|------|-----------|
-| **Size** | 2-3GB | 8-10GB | 3-4GB |
-| **Install Time** | 5-10 min | 15-30 min | 10-15 min |
-| **Document Processing** | ✅ | ✅ | ❌ |
-| **Model Training** | ✅ | ✅ | ❌ |
-| **Basic Evaluation** | ✅ | ✅ | ❌ |
-| **Advanced Metrics** | ❌ | ✅ | ❌ |
-| **Visualizations** | ❌ | ✅ | ❌ |
-| **Web Interfaces** | ❌ | ✅ | ✅ |
-| **Model Inference** | ✅ | ✅ | ✅ |
+| Feature | Direct Install | Virtual Env | Chat Only |
+|---------|----------------|-------------|-----------|
+| **Setup Complexity** | Simple | Advanced | Simple |
+| **System Integration** | Direct | Isolated | Direct |
+| **Models Location** | D:\llm_models\ | ./models/ | ./models/ |
+| **Environment** | System Python | venv | System Python |
+| **Best For** | Workstations | Servers | Deployment |
 
 ---
 
@@ -150,47 +213,59 @@ pip install torch --index-url https://download.pytorch.org/whl/cu118
 
 ### **Common Issues:**
 
+#### **"Models directory not found"**
+- **Windows**: System automatically creates `D:\llm_models\`
+- **Linux**: System automatically creates `./models/`
+- **Custom**: Modify ModelManager initialization
+
 #### **"CUDA out of memory"**
 ```bash
-# Use smaller batch size
 # System automatically adjusts based on available VRAM
+# Check GPU status in menu option 9
 ```
 
 #### **"No module named 'torch'"**
 ```bash
+# Windows
 pip install torch --index-url https://download.pytorch.org/whl/cu118
+
+# Linux/macOS
+pip3 install torch --index-url https://download.pytorch.org/whl/cu118 --user
 ```
 
 #### **"Permission denied" on Windows**
 ```cmd
 # Run Command Prompt as Administrator
-# Or use setup_windows.bat
+# Or use setup_windows_direct.bat
 ```
 
-#### **Slow downloads**
+#### **Import errors on Linux**
 ```bash
-# Install faster download support
-pip install huggingface-hub[hf_xet]
+# Ensure ~/.local/bin is in PATH
+export PATH=$PATH:~/.local/bin
 ```
 
 ---
 
 ## 💡 Recommendations
 
-### **For Beginners:**
-1. Start with **Minimal Installation**
-2. Test basic functionality
-3. Upgrade to Full if needed
+### **For Windows Users:**
+1. Use **setup_windows_direct.bat** for automated setup
+2. Models automatically stored in `D:\llm_models\`
+3. No virtual environment needed
+4. Direct system integration
 
-### **For Researchers:**
-1. Use **Full Installation**
-2. Install on GPU server
-3. Enable all optimizations
+### **For Linux/macOS Users:**
+1. Use **setup_linux_direct.sh** for automated setup
+2. Packages installed with `--user` flag
+3. No virtual environment needed
+4. System-wide availability
 
-### **For Deployment:**
-1. Train with **Full Installation**
-2. Deploy with **Chat Interface Only**
-3. Use exported models
+### **For Servers:**
+1. Use **gpu_setup.sh** for isolated environment
+2. Virtual environment for better control
+3. Advanced monitoring and optimization
+4. Production deployment ready
 
 ---
 
@@ -198,9 +273,9 @@ pip install huggingface-hub[hf_xet]
 
 - **System Status**: Run `python src/main.py` → Option 9
 - **GPU Check**: Run `nvidia-smi` (Windows/Linux)
-- **Requirements Check**: Each requirements file includes size estimates
+- **Models Location**: Automatically displayed on startup
 - **Performance Tips**: See README.md for hardware-specific optimizations
 
 ---
 
-**Ready to start? Choose your installation option above! 🚀**
+**Ready to start? Choose your platform-specific setup above! 🚀**

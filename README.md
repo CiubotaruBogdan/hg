@@ -17,11 +17,32 @@ A comprehensive system for training and evaluating Large Language Models on Roma
 
 ## 🚀 Quick Start
 
-### **Linux/macOS (GPU Optimized):**
+### **Windows - Direct Installation (Recommended):**
+```cmd
+# Download and extract from GitHub
+# Run automated setup (no virtual environment)
+setup_windows_direct.bat
+
+# Start the system
+python src/main.py
+# Models will be stored in: D:\llm_models\
+```
+
+### **Linux/macOS - Direct Installation (Recommended):**
 ```bash
-# Clone and setup
-git clone https://github.com/CiubotaruBogdan/hg.git
-cd hg
+# Download and extract from GitHub
+# Run automated setup (no virtual environment)
+chmod +x setup_linux_direct.sh
+./setup_linux_direct.sh
+
+# Start the system
+python3 src/main.py
+# Models will be stored in: ./models/
+```
+
+### **Server with Virtual Environment (Advanced):**
+```bash
+# For isolated server deployment
 chmod +x gpu_setup.sh
 ./gpu_setup.sh
 
@@ -30,20 +51,11 @@ source venv/bin/activate
 python src/main.py
 ```
 
-### **Windows (GPU Optimized):**
-```cmd
-# Download and extract from GitHub
-# Then run:
-setup_windows.bat
-
-# Run system
-run_system.bat
-```
-
 ### **Simple Usage:**
 1. **Double-click main.py** (or run setup scripts)
 2. **Select menu options** 1-6 for complete workflow
 3. **No command line arguments** needed!
+4. **Models automatically organized** in dedicated directory
 
 ## 📋 System Requirements
 

@@ -27,9 +27,27 @@ logger = logging.getLogger(__name__)
 class ModelManager:
     """Manages LLM model downloading and status checking."""
     
-    def __init__(self, models_dir: str = "models"):
-        self.models_dir = Path(models_dir)
-        self.models_dir.mkdir(exist_ok=True)
+    def __init__(self, models_dir: str = None):
+        """
+        Initialize the model manager.
+        
+        Args:
+            models_dir: Custom directory for storing models. 
+                       Defaults to D:\llm_models\ on Windows, ./models/ on other systems.
+        """
+        if models_dir:
+            self.models_dir = Path(models_dir)
+        else:
+            # Default to D:\llm_models\ on Windows for better organization
+            if os.name == 'nt':  # Windows
+                self.models_dir = Path("D:/llm_models")
+            else:  # Linux/macOS
+                self.models_dir = Path("./models")
+        
+        # Create models directory if it doesn't exist
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"📁 Models will be stored in: {self.models_dir.absolute()}")
         
         # Model configurations with real download info
         self.models_config = {
